@@ -1,0 +1,12 @@
+.cart-drawer {
+  padding: 1rem;
+  background: #ffffff;
+  border-left: 1px solid #eee;
+}
+
+.cart-summary {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}

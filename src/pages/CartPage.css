@@ -1,0 +1,14 @@
+.cart-page {
+  padding: 2rem 1rem;
+}
+
+.cart-page ul {
+  list-style: none;
+  padding: 0;
+}
+
+.cart-page li {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
