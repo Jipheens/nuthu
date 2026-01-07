@@ -5,6 +5,7 @@ import './styles/globals.css';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProductsProvider } from './context/ProductsContext';
+import { ToastProvider } from './context/ToastContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
@@ -12,7 +13,9 @@ root.render(
     <AuthProvider>
       <ProductsProvider>
         <CartProvider>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </CartProvider>
       </ProductsProvider>
     </AuthProvider>

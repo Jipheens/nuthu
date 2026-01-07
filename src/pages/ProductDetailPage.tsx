@@ -1,25 +1,85 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useProducts } from '../hooks/useProducts';
-import ProductCard from '../components/products/ProductCard';
+import { useCart } from '../hooks/useCart';
+import { formatCurrency } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
 
 const ProductDetailPage: React.FC = () => {
     const { productId } = useParams<{ productId: string }>();
     const { products } = useProducts();
+    const { addToCart } = useCart();
+    const { showToast } = useToast();
+    const navigate = useNavigate();
+    const [quantity, setQuantity] = useState<number>(1);
     const product = products.find((p) => p.id === productId);
 
     if (!product) {
-        return <div>Product not found</div>;
+        return <main className="app-shell">
+            <section className="container page-content glass-panel">
+                <p>Product not found.</p>
+            </section>
+        </main>;
     }
 
+    const handleAddToCart = () => {
+        if (product.inStock === false) return;
+        const safeQty = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+        addToCart({ id: product.id, name: product.name, price: product.price, quantity: safeQty, imageUrl: product.imageUrl });
+        showToast(`${product.name} added to cart.`, 'success');
+    };
+
+    const handleBuyNow = () => {
+        if (product.inStock === false) return;
+        const safeQty = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+        addToCart({ id: product.id, name: product.name, price: product.price, quantity: safeQty, imageUrl: product.imageUrl });
+        navigate('/checkout');
+    };
+
     return (
-        <div>
-            <h1>{product.name}</h1>
-            <ProductCard product={product} />
-            <p>{product.description}</p>
-            <p>Price: ${product.price}</p>
-            {/* Additional product details can be added here */}
-        </div>
+        <main className="app-shell product-detail-shell">
+            <section className="container page-content product-detail">
+                <div className="product-detail-image-wrap">
+                    <img src={product.imageUrl} alt={product.name} className="product-detail-image" />
+                </div>
+                <div className="product-detail-info">
+                    <h1 className="product-detail-title">{product.name}</h1>
+                    <p className="product-detail-price">{formatCurrency(product.price, 'KES')}</p>
+                    <p className="product-detail-description">{product.description}</p>
+                    <div style={{ margin: '0.75rem 0' }}>
+                        <label className="form-label" style={{ maxWidth: '140px' }}>
+                            Quantity
+                            <input
+                                type="number"
+                                min={1}
+                                value={quantity}
+                                onChange={e => setQuantity(Number(e.target.value) || 1)}
+                                className="form-input"
+                            />
+                        </label>
+                    </div>
+                    <div className="product-detail-actions">
+                        <button
+                            className="add-to-cart-button"
+                            onClick={handleAddToCart}
+                            disabled={product.inStock === false}
+                        >
+                            {product.inStock === false ? 'Sold out' : 'Add to cart'}
+                        </button>
+                        {product.inStock !== false && (
+                            <button
+                                className="add-to-cart-button"
+                                type="button"
+                                style={{ marginLeft: '0.75rem', backgroundColor: '#4f46e5' }}
+                                onClick={handleBuyNow}
+                            >
+                                Buy now
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </section>
+    </main>
     );
 };
 

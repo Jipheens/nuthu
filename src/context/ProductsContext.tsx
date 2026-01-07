@@ -1,51 +1,69 @@
-import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  ReactNode,
+} from 'react';
 import { Product } from '../types';
+import {
+  getProducts,
+  createProduct as apiCreateProduct,
+  deleteProduct as apiDeleteProduct,
+} from '../services/api';
 
 interface ProductsContextValue {
   products: Product[];
-  addProduct: (product: Omit<Product, 'id'>) => void;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<Product>;
   deleteProduct: (id: string) => void;
 }
 
 const ProductsContext = createContext<ProductsContextValue | undefined>(undefined);
 
-const INITIAL_PRODUCTS: Product[] = [
-  {
-    id: '1',
-    name: 'Classic Handbag',
-    description: 'Elegant handbag perfect for everyday use.',
-    price: 59.99,
-    category: 'Bags',
-    imageUrl: 'https://via.placeholder.com/300x300?text=Handbag',
-  },
-  {
-    id: '2',
-    name: 'Stylish Heels',
-    description: 'Comfortable yet stylish heels for any occasion.',
-    price: 79.99,
-    category: 'Shoes',
-    imageUrl: 'https://via.placeholder.com/300x300?text=Heels',
-  },
-  {
-    id: '3',
-    name: 'Summer Dress',
-    description: 'Lightweight dress ideal for warm days.',
-    price: 49.99,
-    category: 'Clothes',
-    imageUrl: 'https://via.placeholder.com/300x300?text=Dress',
-  },
-];
-
 export const ProductsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
 
-  const addProduct = (product: Omit<Product, 'id'>) => {
-    const id = Date.now().toString();
-    setProducts(prev => [...prev, { ...product, id }]);
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const loaded = await getProducts();
+        if (!cancelled) {
+          setProducts(loaded);
+        }
+      } catch (err) {
+        console.error('Failed to load products from API', err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const addProduct = async (product: Omit<Product, 'id'>): Promise<Product> => {
+    try {
+      const created = await apiCreateProduct({ ...product, inStock: true });
+      setProducts(prev => [...prev, created]);
+      return created;
+    } catch (err) {
+      console.error('Failed to add product', err);
+      throw err;
+    }
   };
 
   const deleteProduct = (id: string) => {
     setProducts(prev => prev.filter(p => p.id !== id));
+
+    (async () => {
+      try {
+        await apiDeleteProduct(id);
+      } catch (err) {
+        console.error('Failed to delete product', err);
+      }
+    })();
   };
 
   const value = useMemo(

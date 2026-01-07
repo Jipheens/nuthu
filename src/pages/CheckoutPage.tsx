@@ -1,36 +1,260 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCart } from '../hooks/useCart';
 import { useNavigate } from 'react-router-dom';
+import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
+import { createPaymentIntent } from '../services/api';
+import { formatCurrency } from '../utils/formatters';
+import { useAuth } from '../context/AuthContext';
+import './CheckoutPage.css';
 
 const CheckoutPage: React.FC = () => {
-    const { cartItems, totalAmount } = useCart();
+    const { cartItems, totalAmount, clearCart } = useCart();
     const navigate = useNavigate();
+    const stripe = useStripe();
+    const elements = useElements();
+    const { user, login } = useAuth();
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [email, setEmail] = useState<string>(user?.email ?? '');
+    const [confirmEmail, setConfirmEmail] = useState<string>(user?.email ?? '');
+    const [emailError, setEmailError] = useState<string | null>(null);
+    const [emailStepComplete, setEmailStepComplete] = useState<boolean>(!!user?.email);
 
-    const handleCheckout = () => {
-        // Logic for handling checkout process
-        // This could involve API calls to process payment, etc.
-        navigate('/');
+    const validateEmailFormat = (value: string) => {
+        // Simple email pattern check; adjust as needed
+        return /.+@.+\..+/.test(value.trim());
     };
+
+    const handleEmailSubmit = (event: React.FormEvent) => {
+        event.preventDefault();
+
+        const trimmedEmail = email.trim();
+        const trimmedConfirm = confirmEmail.trim();
+
+        if (!validateEmailFormat(trimmedEmail)) {
+            setEmailError('Please enter a valid email address.');
+            return;
+        }
+
+        if (trimmedEmail !== trimmedConfirm) {
+            setEmailError('Email addresses do not match.');
+            return;
+        }
+
+        setEmailError(null);
+        login({ email: trimmedEmail });
+        window.localStorage.setItem('customerEmail', trimmedEmail);
+        setEmailStepComplete(true);
+    };
+
+    const handleCheckout = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (!cartItems.length) return;
+        if (!stripe || !elements) return;
+
+        if (!emailStepComplete) {
+            setErrorMessage('Please verify your email before paying.');
+            return;
+        }
+
+        setIsProcessing(true);
+        setErrorMessage(null);
+
+        try {
+            // Persist a snapshot of the order so we can
+            // record it in the database on the success page.
+                const customerEmail = user?.email ?? email;
+
+                const orderSnapshot = {
+                totalAmount,
+                currency: 'kes',
+                items: cartItems.map(item => ({
+                    productId: item.id,
+                    quantity: item.quantity,
+                    price: item.price,
+                    })),
+                    // Store the email alongside the order snapshot for later use
+                    email: customerEmail,
+            };
+            window.localStorage.setItem('lastOrderSnapshot', JSON.stringify(orderSnapshot));
+
+            // Create a PaymentIntent on the backend
+            const clientSecret = await createPaymentIntent(totalAmount, 'kes');
+            const cardElement = elements.getElement(CardElement);
+            if (!cardElement) {
+                setErrorMessage('Card input is not ready yet.');
+                setIsProcessing(false);
+                return;
+            }
+
+            const { error, paymentIntent } = await stripe.confirmCardPayment(
+                clientSecret,
+                {
+                    payment_method: {
+                        card: cardElement,
+                    },
+                }
+            );
+
+            if (error) {
+                setErrorMessage(error.message || 'Payment failed. Please try again.');
+                setIsProcessing(false);
+                return;
+            }
+
+            if (paymentIntent && paymentIntent.status === 'succeeded') {
+                clearCart();
+                navigate('/checkout/success');
+            } else {
+                setErrorMessage('Payment was not completed.');
+            }
+        } catch (error) {
+            console.error('Checkout failed', error);
+            setErrorMessage('Payment failed. Please try again.');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    if (cartItems.length === 0) {
+        return (
+            <div className="checkout-page">
+                <div className="checkout-empty">
+                    <h1>Your cart is empty</h1>
+                    <p>Add some items to your cart before checking out.</p>
+                    <a href="/shop" className="continue-shopping">Continue shopping</a>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="checkout-page">
-            <h1>Checkout</h1>
-            {cartItems.length === 0 ? (
-                <p>Your cart is empty.</p>
-            ) : (
-                <div>
-                    <h2>Your Items</h2>
-                    <ul>
+            <div className="checkout-container">
+                <div className="checkout-left">
+                    <h1>Checkout</h1>
+
+                    <div className="checkout-order-summary">
+                        <h2>Order Summary</h2>
                         {cartItems.map(item => (
-                            <li key={item.id}>
-                                {item.name} - ${item.price}
-                            </li>
+                            <div key={item.id} className="checkout-item">
+                                <img src={item.imageUrl} alt={item.name} />
+                                <div className="checkout-item-details">
+                                    <p className="checkout-item-name">{item.name}</p>
+                                    <p className="checkout-item-qty">Qty: {item.quantity}</p>
+                                </div>
+                                <p className="checkout-item-price">
+                                    {formatCurrency(item.price * item.quantity, 'KES')}
+                                </p>
+                            </div>
                         ))}
-                    </ul>
-                    <h3>Total Amount: ${totalAmount}</h3>
-                    <button onClick={handleCheckout}>Proceed to Payment</button>
+                        <div className="checkout-total-row">
+                            <strong>Total:</strong>
+                            <strong>{formatCurrency(totalAmount, 'KES')}</strong>
+                        </div>
+                    </div>
                 </div>
-            )}
+
+                <div className="checkout-right">
+                    {!emailStepComplete ? (
+                        <div className="checkout-section">
+                            <h2>Step 1: Verify your email</h2>
+                            <form onSubmit={handleEmailSubmit} className="checkout-form">
+                                <div className="form-group">
+                                    <label className="form-label">Email address</label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="form-input"
+                                        placeholder="your@email.com"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Confirm email</label>
+                                    <input
+                                        type="email"
+                                        value={confirmEmail}
+                                        onChange={(e) => setConfirmEmail(e.target.value)}
+                                        className="form-input"
+                                        placeholder="your@email.com"
+                                        required
+                                    />
+                                </div>
+
+                                {emailError && (
+                                    <div className="error-message">{emailError}</div>
+                                )}
+
+                                <button type="submit" className="checkout-button">
+                                    Continue to payment
+                                </button>
+                            </form>
+                        </div>
+                    ) : (
+                        <div className="checkout-section">
+                            <div className="email-verified">
+                                <h2>Step 2: Payment details</h2>
+                                <div className="your-details">
+                                    <p><strong>Email:</strong> {user?.email || email}</p>
+                                    <button
+                                        onClick={() => {
+                                            setEmailStepComplete(false);
+                                            setErrorMessage(null);
+                                        }}
+                                        className="change-email-btn"
+                                        type="button"
+                                    >
+                                        Change
+                                    </button>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleCheckout} className="checkout-form">
+                                <div className="form-group">
+                                    <label className="form-label">Card details</label>
+                                    <div className="card-element-wrapper">
+                                        <CardElement
+                                            options={{
+                                                style: {
+                                                    base: {
+                                                        fontSize: '16px',
+                                                        color: '#fff',
+                                                        '::placeholder': {
+                                                            color: '#666',
+                                                        },
+                                                        backgroundColor: 'transparent',
+                                                    },
+                                                    invalid: {
+                                                        color: '#fa755a',
+                                                    },
+                                                },
+                                            }}
+                                        />
+                                    </div>
+                                    <p className="card-info-text">
+                                        Test card: 4242 4242 4242 4242 | Any future date | Any 3-digit CVC
+                                    </p>
+                                </div>
+
+                                {errorMessage && (
+                                    <div className="error-message">{errorMessage}</div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    className="checkout-button"
+                                    disabled={isProcessing || !stripe}
+                                >
+                                    {isProcessing ? 'Processing...' : `Pay ${formatCurrency(totalAmount, 'KES')}`}
+                                </button>
+                            </form>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };

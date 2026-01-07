@@ -1,17 +1,21 @@
 import React, { createContext, useContext, useState } from 'react';
 
+interface AuthUser {
+  email: string;
+}
+
 interface AuthContextType {
-  user: any; // Replace 'any' with a specific user type if available
-  login: (userData: any) => void; // Replace 'any' with a specific type for user data
+  user: AuthUser | null;
+  login: (userData: AuthUser) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<any>(null); // Replace 'any' with a specific user type if available
+  const [user, setUser] = useState<AuthUser | null>(null);
 
-  const login = (userData: any) => { // Replace 'any' with a specific type for user data
+  const login = (userData: AuthUser) => {
     setUser(userData);
   };
 
