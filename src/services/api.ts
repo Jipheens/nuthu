@@ -6,6 +6,9 @@ import { Product } from '../types';
 const API_BASE_URL =
     (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
+// Enable cookies to be sent with requests
+axios.defaults.withCredentials = true;
+
 // Shape returned by the backend (MariaDB rows)
 interface ProductDTO {
     id: number;
@@ -126,4 +129,117 @@ export const createOrder = async (
         payload
     );
     return response.data.id;
+};
+
+// Email verification
+export const sendVerificationEmail = async (email: string): Promise<void> => {
+    await axios.post(`${API_BASE_URL}/email/send-verification`, { email });
+};
+
+export const verifyEmailCode = async (
+    email: string,
+    code: string
+): Promise<boolean> => {
+    try {
+        const response = await axios.post<{ success: boolean }>(
+            `${API_BASE_URL}/email/verify-code`,
+            { email, code }
+        );
+        return response.data.success;
+    } catch (error) {
+        return false;
+    }
+};
+
+// Authentication
+export interface User {
+    id: number;
+    email: string;
+    name: string | null;
+}
+
+export interface AuthResponse {
+    user: User;
+    token: string;
+}
+
+export const register = async (
+    email: string,
+    password: string,
+    name?: string
+): Promise<AuthResponse> => {
+    const response = await axios.post<AuthResponse>(
+        `${API_BASE_URL}/auth/register`,
+        { email, password, name }
+    );
+    return response.data;
+};
+
+export const login = async (
+    email: string,
+    password: string
+): Promise<AuthResponse> => {
+    const response = await axios.post<AuthResponse>(
+        `${API_BASE_URL}/auth/login`,
+        { email, password }
+    );
+    return response.data;
+};
+
+export const logout = async (): Promise<void> => {
+    await axios.post(`${API_BASE_URL}/auth/logout`);
+};
+
+export const getCurrentUser = async (): Promise<User | null> => {
+    try {
+        const response = await axios.get<{ user: User }>(
+            `${API_BASE_URL}/auth/me`
+        );
+        return response.data.user;
+    } catch (error) {
+        return null;
+    }
+};
+
+// Cart
+export interface CartItem {
+    cartItemId: number;
+    id: number;
+    name: string;
+    brand: string | null;
+    price: number;
+    image_url: string | null;
+    in_stock: boolean;
+    quantity: number;
+    size?: string | null;
+}
+
+export const getCart = async (): Promise<CartItem[]> => {
+    const response = await axios.get<{ cartItems: CartItem[] }>(
+        `${API_BASE_URL}/cart`
+    );
+    return response.data.cartItems;
+};
+
+export const addToCart = async (
+    productId: number,
+    quantity: number = 1,
+    size?: string
+): Promise<void> => {
+    await axios.post(`${API_BASE_URL}/cart`, { productId, quantity, size });
+};
+
+export const updateCartItem = async (
+    cartItemId: number,
+    quantity: number
+): Promise<void> => {
+    await axios.put(`${API_BASE_URL}/cart/${cartItemId}`, { quantity });
+};
+
+export const removeFromCart = async (cartItemId: number): Promise<void> => {
+    await axios.delete(`${API_BASE_URL}/cart/${cartItemId}`);
+};
+
+export const clearCart = async (): Promise<void> => {
+    await axios.delete(`${API_BASE_URL}/cart`);
 };

@@ -11,12 +11,19 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import ManageProductsPage from './pages/ManageProductsPage';
 import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
+import DesignersPage from './pages/DesignersPage';
+import RentalPage from './pages/RentalPage';
+import AppointmentPage from './pages/AppointmentPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 
 const stripePromise = loadStripe(
   (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY as string
 );
 
 const App: React.FC = () => {
+  console.log('App component rendering');
+  
   return (
   <Router>
     <Header />
@@ -35,6 +42,11 @@ const App: React.FC = () => {
     />
     <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
     <Route path="/manage" element={<ManageProductsPage />} />
+    <Route path="/designers" element={<DesignersPage />} />
+    <Route path="/rental" element={<RentalPage />} />
+    <Route path="/appointment" element={<AppointmentPage />} />
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/register" element={<RegisterPage />} />
     </Routes>
     <Footer />
   </Router>

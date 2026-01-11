@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProducts } from '../hooks/useProducts';
 import { useCart } from '../hooks/useCart';
-import { formatCurrency } from '../utils/formatters';
+import { PriceDisplay } from '../components/common/PriceDisplay';
 import { useToast } from '../context/ToastContext';
+import { getImageUrl } from '../utils/formatters';
 
 const ProductDetailPage: React.FC = () => {
     const { productId } = useParams<{ productId: string }>();
@@ -22,17 +23,16 @@ const ProductDetailPage: React.FC = () => {
         </main>;
     }
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (product.inStock === false) return;
         const safeQty = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
-        addToCart({ id: product.id, name: product.name, price: product.price, quantity: safeQty, imageUrl: product.imageUrl });
-        showToast(`${product.name} added to cart.`, 'success');
+        await addToCart(Number(product.id), safeQty);
     };
 
-    const handleBuyNow = () => {
+    const handleBuyNow = async () => {
         if (product.inStock === false) return;
         const safeQty = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
-        addToCart({ id: product.id, name: product.name, price: product.price, quantity: safeQty, imageUrl: product.imageUrl });
+        await addToCart(Number(product.id), safeQty);
         navigate('/checkout');
     };
 
@@ -40,11 +40,11 @@ const ProductDetailPage: React.FC = () => {
         <main className="app-shell product-detail-shell">
             <section className="container page-content product-detail">
                 <div className="product-detail-image-wrap">
-                    <img src={product.imageUrl} alt={product.name} className="product-detail-image" />
+                    <img src={getImageUrl(product.imageUrl)} alt={product.name} className="product-detail-image" />
                 </div>
                 <div className="product-detail-info">
                     <h1 className="product-detail-title">{product.name}</h1>
-                    <p className="product-detail-price">{formatCurrency(product.price, 'KES')}</p>
+                    <p className="product-detail-price"><PriceDisplay priceInKES={product.price} /></p>
                     <p className="product-detail-description">{product.description}</p>
                     <div style={{ margin: '0.75rem 0' }}>
                         <label className="form-label" style={{ maxWidth: '140px' }}>

@@ -2,8 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Product } from '../../types';
 import { useCart } from '../../hooks/useCart';
-import { formatCurrency } from '../../utils/formatters';
-import { useToast } from '../../context/ToastContext';
+import { PriceDisplay } from '../common/PriceDisplay';
+import { getImageUrl } from '../../utils/formatters';
 
 interface ProductCardProps {
     product: Product;
@@ -11,24 +11,16 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     const { addToCart } = useCart();
-    const { showToast } = useToast();
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (product.inStock === false) return;
-        addToCart({
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            quantity: 1,
-            imageUrl: product.imageUrl,
-        });
-        showToast(`${product.name} added to cart.`, 'success');
+        await addToCart(Number(product.id), 1);
     };
 
     return (
         <div className="product-card">
             <Link to={`/product/${product.id}`} className="product-image-wrap">
-                <img src={product.imageUrl} alt={product.name} className="product-image" />
+                <img src={getImageUrl(product.imageUrl)} alt={product.name} className="product-image" />
                 {product.inStock === false && (
                     <span className="product-ribbon">Sold out</span>
                 )}
@@ -38,7 +30,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                     <Link to={`/product/${product.id}`}>{product.name}</Link>
                 </h3>
                 <div className="product-bottom-row">
-                    <span className="product-price">Regular price {formatCurrency(product.price, 'KES')}</span>
+                    <span className="product-price">Regular price <PriceDisplay priceInKES={product.price} /></span>
                 </div>
             </div>
         </div>

@@ -8,12 +8,14 @@ const HomePage: React.FC = () => {
     const { products, loading, error } = useProducts();
     const [category, setCategory] = useState<string>('All');
 
+    console.log('HomePage rendering:', { productsCount: products.length, loading, error });
+
     if (loading) {
-        return <div className="container page-content">Loading products...</div>;
+        return <div className="container page-content" style={{ color: 'white' }}>Loading products...</div>;
     }
 
     if (error) {
-        return <div className="container page-content">Failed to load products.</div>;
+        return <div className="container page-content" style={{ color: 'white' }}>Failed to load products.</div>;
     }
 
     const visibleProducts = useMemo(
