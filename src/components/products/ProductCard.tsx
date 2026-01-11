@@ -33,26 +33,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                     <span className="product-ribbon">Sold out</span>
                 )}
             </Link>
-            <div className="product-meta">
-                <span>{product.category}</span>
-                <span>★ ★ ★ ★ ☆</span>
-            </div>
-            {product.brand && (
-                <div className="product-brand">{product.brand}</div>
-            )}
-            <h3 className="product-title">
-                <Link to={`/product/${product.id}`}>{product.name}</Link>
-            </h3>
-            <p className="product-description">{product.description}</p>
-            <div className="product-bottom-row">
-                <span className="product-price">{formatCurrency(product.price, 'KES')}</span>
-                <button
-                    className="add-to-cart-button"
-                    onClick={handleAddToCart}
-                    disabled={product.inStock === false}
-                >
-                    {product.inStock === false ? 'Unavailable' : 'Add to Cart'}
-                </button>
+            <div className="product-info">
+                <h3 className="product-title">
+                    <Link to={`/product/${product.id}`}>{product.name}</Link>
+                </h3>
+                <div className="product-bottom-row">
+                    <span className="product-price">Regular price {formatCurrency(product.price, 'KES')}</span>
+                </div>
             </div>
         </div>
     );

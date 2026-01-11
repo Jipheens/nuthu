@@ -25,16 +25,8 @@ const ShopPage: React.FC = () => {
 
     return (
         <main className="app-shell">
-            <section className="container page-content glass-panel">
-                <div className="hero-banner">
-                    <div className="hero-banner-text">
-                        <h2>All outfits &amp; accessories</h2>
-                        <p>Scroll through every look, mix and match across categories.</p>
-                    </div>
-                    <button className="hero-banner-cta">View full collection</button>
-                </div>
-
-                <h1 className="page-title">All products</h1>
+            <section className="container page-content">
+                <h1 className="section-title">All Products</h1>
                 <ProductFilter activeCategory={category} onChange={setCategory} />
                 <ProductList products={visibleProducts} />
             </section>

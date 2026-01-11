@@ -26,33 +26,17 @@ const HomePage: React.FC = () => {
 
     return (
         <main className="app-shell">
-            <section className="container page-content glass-panel">
-                <div className="hero-banner hero-banner-large">
-                    <div className="hero-banner-text">
-                        <h2>Curated designer archive</h2>
-                        <p>Rare pieces, bags and shoes sourced from around the world.</p>
-                    </div>
-                    <Link to="/shop" className="hero-banner-cta">Shop new arrivals</Link>
+            {/* Hero Section */}
+            <section className="hero-section">
+                <div className="hero-content">
+                    <h1 className="hero-title">Chrome Hearts</h1>
+                    <Link to="/shop" className="hero-cta">Shop Now</Link>
                 </div>
+            </section>
 
-                <h1 className="page-title">Shop New Arrivals</h1>
-                <p className="page-subtitle">Discover the latest drops before they sell out.</p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: '#777' }}>All styles in Kenyan Shilling (KES)</span>
-                    <Link to="/shop" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>View all</Link>
-                </div>
-
-                {products.some(p => p.brand) && (
-                    <div style={{ marginTop: '0.75rem', marginBottom: '0.25rem' }}>
-                        <h3 style={{ fontSize: '0.9rem', marginBottom: '0.35rem' }}>Featured designers</h3>
-                        <div className="filter-chips-row">
-                            {Array.from(new Set(products.map(p => p.brand).filter(Boolean) as string[])).map(brand => (
-                                <span key={brand} className="filter-chip">{brand}</span>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
+            <section className="container page-content">
+                <h2 className="section-title">Shop New Arrivals</h2>
+                
                 <ProductFilter activeCategory={category} onChange={setCategory} />
                 <ProductList products={visibleProducts} />
             </section>
