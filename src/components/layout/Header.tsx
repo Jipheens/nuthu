@@ -43,17 +43,17 @@ const Header: React.FC = () => {
     return (
         <header className="app-header">
             <div className="container app-header-inner">
-                <Link to="/" className="branding">Nuthu Archive</Link>
+                <Link to="/" className="branding">Archivesbybilly</Link>
                 <nav className="main-nav">
                     <ul className="nav-links">
-                        <li><Link to="/">🏠 Home</Link></li>
-                        <li><Link to="/shop">🛍️ Shop</Link></li>
+                        <li><Link to="/">Home</Link></li>
+                        <li><Link to="/shop">Shop</Link></li>
                         <li 
                             className="nav-dropdown"
                             onMouseEnter={() => setShowDesignerDropdown(true)}
                             onMouseLeave={() => setShowDesignerDropdown(false)}
                         >
-                            <span className="nav-dropdown-trigger">✨ Designers</span>
+                            <span className="nav-dropdown-trigger">Designers</span>
                             {showDesignerDropdown && (
                                 <div className="nav-dropdown-menu">
                                     <Link to="/designers" className="dropdown-item">See All</Link>
@@ -69,8 +69,8 @@ const Header: React.FC = () => {
                                 </div>
                             )}
                         </li>
-                        <li><Link to="/rental">👗 Rental</Link></li>
-                        <li><Link to="/appointment">📅 Book By Appointment</Link></li>
+                        <li><Link to="/rental">Rental</Link></li>
+                        <li><Link to="/appointment">Book By Appointment</Link></li>
                     </ul>
                 </nav>
                 <div className="header-actions">
@@ -100,7 +100,7 @@ const Header: React.FC = () => {
                             onMouseEnter={() => setShowUserDropdown(true)}
                             onMouseLeave={() => setShowUserDropdown(false)}
                         >
-                            <span className="user-trigger">👤 {user.name || user.email}</span>
+                            <span className="user-trigger">{user.name || user.email}</span>
                             {showUserDropdown && (
                                 <div className="user-dropdown-menu">
                                     <button onClick={handleLogout} className="dropdown-item">
