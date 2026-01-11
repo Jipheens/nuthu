@@ -1,6 +1,6 @@
 import React, { useState, FormEvent, ChangeEvent } from 'react';
 import { useProductsContext } from '../context/ProductsContext';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, getImageUrl } from '../utils/formatters';
 import { uploadProductImage } from '../services/api';
 import { useToast } from '../context/ToastContext';
 
@@ -75,13 +75,13 @@ const ManageProductsPage: React.FC = () => {
 
   return (
     <main className="app-shell">
-      <section className="container page-content glass-panel">
-        <h1 className="page-title">Manage Products</h1>
-        <p className="page-subtitle">Quickly add or remove items that appear on your shop pages.</p>
+      <section className="container page-content">
+        <h1 className="section-title">Manage Products</h1>
+        <p className="page-subtitle" style={{ textAlign: 'center', color: '#999', marginBottom: '3rem' }}>Quickly add or remove items that appear on your shop pages.</p>
 
         <div className="manage-layout">
           <div className="manage-card">
-            <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Add new item</h3>
+            <h3 className="manage-card-title">Add new item</h3>
             <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
               <div className="manage-form-field">
                 <label>Product name</label>
@@ -136,18 +136,18 @@ const ManageProductsPage: React.FC = () => {
                   onChange={e => setDescription(e.target.value)}
                 />
               </div>
-              <button className="add-to-cart-button" type="submit" disabled={isSubmitting}>
+              <button className="manage-submit-btn" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Saving…' : 'Add Product'}
               </button>
             </form>
           </div>
 
           <div>
-            <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Current items</h3>
+            <h3 className="manage-card-title">Current items</h3>
             <div className="manage-products-grid">
               {products.map(p => (
                 <div key={p.id} className="product-card">
-                  <img src={p.imageUrl} alt={p.name} className="product-image" />
+                  <img src={getImageUrl(p.imageUrl)} alt={p.name} className="product-image" />
                   <div className="product-meta">
                     <span className="pill-badge">{p.category}</span>
                     <span>{formatCurrency(p.price, 'KES')}</span>
@@ -155,8 +155,7 @@ const ManageProductsPage: React.FC = () => {
                   <h3 className="product-title">{p.name}</h3>
                   <button
                     type="button"
-                    style={{ marginTop: '0.25rem', background: '#f44336' }}
-                    className="add-to-cart-button"
+                    className="manage-delete-btn"
                     onClick={() => deleteProduct(p.id)}
                   >
                     Delete

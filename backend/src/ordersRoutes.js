@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('./db');
+const { pool } = require('./db');
+const { sendOrderConfirmation } = require('./emailService');
 
 // POST /api/orders
 // Expects: { totalAmount, currency, email?, items: [{ productId, quantity, price }] }
@@ -35,6 +36,26 @@ router.post('/', async (req, res) => {
     );
 
     await conn.commit();
+
+    // Send order confirmation email if email is provided
+    if (email) {
+      try {
+        await sendOrderConfirmation({
+          email,
+          orderId,
+          totalAmount,
+          currency,
+          items: items.map(item => ({
+            productName: item.productName || item.name || 'Product',
+            quantity: item.quantity,
+            price: item.price,
+          })),
+        });
+      } catch (emailError) {
+        console.error('Failed to send order confirmation email:', emailError);
+        // Don't fail the order if email fails
+      }
+    }
 
     res.status(201).json({ id: orderId });
   } catch (err) {

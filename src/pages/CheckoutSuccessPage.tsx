@@ -49,20 +49,21 @@ const CheckoutSuccessPage: React.FC = () => {
 
   return (
     <main className="app-shell">
-      <section className="container page-content glass-panel">
-        <h1 className="page-title">Payment successful</h1>
-        <p className="page-subtitle">
-          {hasSaved
-            ? customerEmail
-              ? `Thank you for your purchase. A confirmation will be sent to ${customerEmail}.`
-              : 'Thank you for your purchase. Your order has been recorded.'
-            : 'Thank you for your purchase. A confirmation will be sent to your email.'}
-        </p>
-        <p style={{ marginTop: '1rem' }}>
-          <Link to="/shop" className="add-to-cart-button">
+      <section className="container page-content" style={{ textAlign: 'center', paddingTop: '4rem', paddingBottom: '4rem' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>✓</div>
+          <h1 className="section-title">Payment successful</h1>
+          <p className="page-subtitle" style={{ fontSize: '1rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+            {hasSaved
+              ? customerEmail
+                ? `Thank you for your purchase. A confirmation will be sent to ${customerEmail}.`
+                : 'Thank you for your purchase. Your order has been recorded.'
+              : 'Thank you for your purchase. A confirmation will be sent to your email.'}
+          </p>
+          <Link to="/shop" className="add-to-cart-button" style={{ display: 'inline-block', padding: '0.875rem 2rem' }}>
             Continue shopping
           </Link>
-        </p>
+        </div>
       </section>
     </main>
   );

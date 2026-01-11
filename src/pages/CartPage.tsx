@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useProducts } from '../hooks/useProducts';
-import { formatCurrency } from '../utils/formatters';
+import { PriceDisplay } from '../components/common/PriceDisplay';
+import { getImageUrl } from '../utils/formatters';
 import './CartPage.css';
 
 const CartPage: React.FC = () => {
@@ -31,9 +32,9 @@ const CartPage: React.FC = () => {
                         <div className="featured-grid">
                             {featuredProducts.map(product => (
                                 <Link to={`/product/${product.id}`} key={product.id} className="featured-item">
-                                    <img src={product.imageUrl} alt={product.name} />
+                                    <img src={getImageUrl(product.imageUrl)} alt={product.name} />
                                     <h3>{product.name}</h3>
-                                    <p className="featured-price">{formatCurrency(product.price, 'KES')}</p>
+                                    <p className="featured-price"><PriceDisplay priceInKES={product.price} /></p>
                                 </Link>
                             ))}
                         </div>
@@ -61,18 +62,18 @@ const CartPage: React.FC = () => {
                     </div>
 
                     {cartItems.map(item => (
-                        <div key={item.id} className="cart-item">
+                        <div key={item.cartItemId} className="cart-item">
                             <div className="cart-item-product">
                                 <img src={item.imageUrl} alt={item.name} />
                                 <div className="cart-item-details">
                                     <h3>{item.name}</h3>
-                                    <p className="cart-item-price">{formatCurrency(item.price, 'KES')}</p>
+                                    <p className="cart-item-price"><PriceDisplay priceInKES={item.price} /></p>
                                 </div>
                             </div>
 
                             <div className="cart-item-quantity">
                                 <button
-                                    onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                                    onClick={() => updateQuantity(item.cartItemId, Math.max(1, item.quantity - 1))}
                                     className="quantity-btn"
                                 >
                                     −
@@ -82,19 +83,19 @@ const CartPage: React.FC = () => {
                                     value={item.quantity}
                                     onChange={(e) => {
                                         const val = parseInt(e.target.value) || 1;
-                                        updateQuantity(item.id, Math.max(1, val));
+                                        updateQuantity(item.cartItemId, Math.max(1, val));
                                     }}
                                     className="quantity-input"
                                     min="1"
                                 />
                                 <button
-                                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                    onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
                                     className="quantity-btn"
                                 >
                                     +
                                 </button>
                                 <button
-                                    onClick={() => removeFromCart(item.id)}
+                                    onClick={() => removeFromCart(item.cartItemId)}
                                     className="remove-btn"
                                     title="Remove item"
                                 >
@@ -103,7 +104,7 @@ const CartPage: React.FC = () => {
                             </div>
 
                             <div className="cart-item-total">
-                                {formatCurrency(item.price * item.quantity, 'KES')}
+                                <PriceDisplay priceInKES={item.price * item.quantity} />
                             </div>
                         </div>
                     ))}
@@ -111,7 +112,7 @@ const CartPage: React.FC = () => {
 
                 <div className="cart-summary">
                     <h2>Estimated total</h2>
-                    <p className="cart-summary-total">{formatCurrency(totalAmount, 'KES')}</p>
+                    <p className="cart-summary-total"><PriceDisplay priceInKES={totalAmount} /></p>
                     <p className="cart-summary-note">
                         Taxes, discounts and shipping calculated at checkout
                     </p>
@@ -131,9 +132,9 @@ const CartPage: React.FC = () => {
                     <div className="featured-grid">
                         {featuredProducts.map(product => (
                             <Link to={`/product/${product.id}`} key={product.id} className="featured-item">
-                                <img src={product.imageUrl} alt={product.name} />
+                                <img src={getImageUrl(product.imageUrl)} alt={product.name} />
                                 <h3>{product.name}</h3>
-                                <p className="featured-price">{formatCurrency(product.price, 'KES')}</p>
+                                <p className="featured-price"><PriceDisplay priceInKES={product.price} /></p>
                             </Link>
                         ))}
                     </div>
