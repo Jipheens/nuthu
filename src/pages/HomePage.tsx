@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import ProductList from '../components/products/ProductList';
 import ProductFilter from '../components/products/ProductFilter';
 import { useProducts } from '../hooks/useProducts';
+import { HeroSlider } from '../components/home/HeroSlider';
 
 const HomePage: React.FC = () => {
     const { products, loading, error } = useProducts();
@@ -28,13 +29,7 @@ const HomePage: React.FC = () => {
 
     return (
         <main className="app-shell">
-            {/* Hero Section */}
-            <section className="hero-section">
-                <div className="hero-content">
-                    <h1 className="hero-title">Chrome Hearts</h1>
-                    <Link to="/shop" className="hero-cta">Shop Now</Link>
-                </div>
-            </section>
+            <HeroSlider />
 
             <section className="container page-content">
                 <h2 className="section-title">Shop New Arrivals</h2>

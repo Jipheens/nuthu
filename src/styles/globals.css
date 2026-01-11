@@ -65,17 +65,97 @@ img {
   width: 100%;
   height: 70vh;
   min-height: 500px;
-  background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)),
-              url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600') center/cover;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   margin-bottom: 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-slider {
+  background: #000;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.02);
+  filter: saturate(0.95);
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+      rgba(0, 0, 0, 0.35),
+      rgba(0, 0, 0, 0.35)
+    );
+}
+
+.hero-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.55);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+}
+
+.hero-controls-center {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hero-control-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.hero-control-btn:hover {
+  opacity: 1;
+}
+
+.hero-control-btn:focus {
+  outline: none;
+}
+
+.hero-counter {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+  min-width: 44px;
+  text-align: center;
+}
+
+.hero-control-pause {
+  font-size: 16px;
+  padding: 6px 10px;
 }
 
 .hero-content {
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .hero-title {
@@ -84,6 +164,26 @@ img {
   letter-spacing: 0.05em;
   margin-bottom: 2rem;
   text-transform: uppercase;
+}
+
+.hero-dots {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.hero-dot {
+  width: 26px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.35);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.hero-dot.active {
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .hero-cta {
@@ -116,6 +216,24 @@ img {
 
   .hero-title {
     font-size: 2rem;
+  }
+
+  .hero-controls {
+    height: 48px;
+    padding: 0 12px;
+  }
+
+  .hero-controls-center {
+    gap: 10px;
+  }
+
+  .hero-control-btn {
+    font-size: 20px;
+    padding: 6px;
+  }
+
+  .hero-counter {
+    font-size: 13px;
   }
 
   .hero-cta {
@@ -350,9 +468,11 @@ img {
 }
 
 .branding {
+  font-family: 'Playfair Display', serif;
   font-weight: 500;
-  font-size: 1.5rem;
-  letter-spacing: 0.05em;
+  font-size: 1.75rem;
+  letter-spacing: 0.02em;
+  font-style: italic;
 }
 
 .nav-links {
@@ -823,15 +943,41 @@ img {
 
 .footer-payment {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: center;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
-.payment-icon {
-  height: 24px;
+/* Footer payment tiles (reliable, consistent sizing like the reference) */
+.payment-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  width: 44px;
+  padding: 0;
+  background: #ffffff;
+  color: #111;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  user-select: none;
+}
+
+.payment-tile svg {
+  height: 18px;
   width: auto;
-  opacity: 0.6;
+  display: block;
+}
+
+.payment-amex {
+  background: #2f77ff;
+  color: #fff;
+}
+
+.payment-shop {
+  background: #5b2cff;
+  color: #fff;
 }
 
 .payment-badge {
