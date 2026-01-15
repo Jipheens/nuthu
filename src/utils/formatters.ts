@@ -17,8 +17,8 @@ export const truncateString = (str: string, maxLength: number): string => {
 export const getImageUrl = (imageUrl: string | null | undefined): string => {
     if (!imageUrl) return '/placeholder.jpg';
     
-    // Get API base URL from environment or use production default
-    const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'http://173.212.221.125:4000';
+    // Get API origin from environment or default to local dev backend
+    const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:4000';
     
     // If URL contains localhost, replace it with production server
     if (imageUrl.includes('localhost')) {
