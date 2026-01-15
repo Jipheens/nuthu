@@ -1,0 +1,37 @@
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: nuthu_e2e_db
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: ecommerce
+      MARIADB_USER: ecommerce
+      MARIADB_PASSWORD: ecommerce
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nuthu_e2e_api
+    environment:
+      PORT: 4000
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: ecommerce
+      DB_PASSWORD: ecommerce
+      DB_NAME: ecommerce
+      CLIENT_URL: http://localhost:3000
+      JWT_SECRET: e2e-secret
+      NODE_ENV: development
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    ports:
+      - "4001:4000"

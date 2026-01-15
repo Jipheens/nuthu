@@ -2,6 +2,7 @@ import React, { createContext, useContext, useMemo, useState, ReactNode, useEffe
 import * as api from '../services/api';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
+import { getImageUrl } from '../utils/formatters';
 
 export interface CartItem {
     cartItemId: number;
@@ -55,7 +56,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     name: item.name,
                     price: item.price,
                     quantity: item.quantity,
-                    imageUrl: item.image_url || '',
+                    imageUrl: getImageUrl(item.image_url || ''),
                     size: item.size,
                 }))
             );

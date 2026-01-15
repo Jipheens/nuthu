@@ -3,7 +3,7 @@ import { useCart } from '../hooks/useCart';
 import { useNavigate } from 'react-router-dom';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import { createPaymentIntent } from '../services/api';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, getImageUrl } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
 import './CheckoutPage.css';
 
@@ -12,7 +12,7 @@ const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
     const stripe = useStripe();
     const elements = useElements();
-    const { user, login } = useAuth();
+    const { user } = useAuth();
     const [isProcessing, setIsProcessing] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [email, setEmail] = useState<string>(user?.email ?? '');
@@ -42,7 +42,6 @@ const CheckoutPage: React.FC = () => {
         }
 
         setEmailError(null);
-        login({ email: trimmedEmail });
         window.localStorage.setItem('customerEmail', trimmedEmail);
         setEmailStepComplete(true);
     };
@@ -138,7 +137,7 @@ const CheckoutPage: React.FC = () => {
                         <h2>Order Summary</h2>
                         {cartItems.map(item => (
                             <div key={item.id} className="checkout-item">
-                                <img src={item.imageUrl} alt={item.name} />
+                                <img src={getImageUrl(item.imageUrl)} alt={item.name} />
                                 <div className="checkout-item-details">
                                     <p className="checkout-item-name">{item.name}</p>
                                     <p className="checkout-item-qty">Qty: {item.quantity}</p>
