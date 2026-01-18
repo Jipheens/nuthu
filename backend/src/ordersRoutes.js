@@ -4,9 +4,9 @@ const { pool } = require('./db');
 const { sendOrderConfirmation } = require('./emailService');
 
 // POST /api/orders
-// Expects: { totalAmount, currency, email?, items: [{ productId, quantity, price }] }
+// Expects: { totalAmount, currency, email?, paymentStatus?, items: [{ productId, quantity, price }] }
 router.post('/', async (req, res) => {
-  const { totalAmount, currency = 'kes', email, items } = req.body;
+  const { totalAmount, currency = 'kes', email, items, paymentStatus } = req.body;
 
   if (!Array.isArray(items) || !items.length || totalAmount == null) {
     return res.status(400).json({ message: 'Invalid order payload' });
@@ -16,9 +16,14 @@ router.post('/', async (req, res) => {
   try {
     await conn.beginTransaction();
 
+    const safeStatus =
+      paymentStatus === 'pending' || paymentStatus === 'paid'
+        ? paymentStatus
+        : 'paid';
+
     const [orderResult] = await conn.query(
       'INSERT INTO orders (total_amount, currency, customer_email, payment_status) VALUES (?, ?, ?, ?)',
-      [totalAmount, currency, email || null, 'paid']
+      [totalAmount, currency, email || null, safeStatus]
     );
 
     const orderId = orderResult.insertId;

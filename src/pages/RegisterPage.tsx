@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { sendVerificationEmail } from '../services/api';
 
 const RegisterPage: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -31,7 +32,21 @@ const RegisterPage: React.FC = () => {
         try {
             await register(email, password, name);
             showToast('Account created successfully!', 'success');
-            navigate('/');
+
+            // Send verification code (for checkout email confirmation)
+            try {
+                const res = await sendVerificationEmail(email);
+                if ((res as any)?.previewUrl) {
+                    showToast('Verification email preview available (dev).', 'success');
+                } else {
+                    showToast('Verification code sent to your email.', 'success');
+                }
+            } catch {
+                // Don't block account creation if email sending fails
+                showToast('Could not send verification code yet. You can resend it during checkout.', 'error');
+            }
+
+            navigate(`/verify-email?email=${encodeURIComponent(email)}`);
         } catch (error: any) {
             showToast(
                 error.response?.data?.error || 'Registration failed. Please try again.',

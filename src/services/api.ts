@@ -122,6 +122,7 @@ export const createOrder = async (
         currency: string;
         items: { productId: string; quantity: number; price: number }[];
         email?: string;
+        paymentStatus?: 'paid' | 'pending';
     }
 ): Promise<number> => {
     const response = await axios.post<{ id: number }>(
@@ -132,8 +133,14 @@ export const createOrder = async (
 };
 
 // Email verification
-export const sendVerificationEmail = async (email: string): Promise<void> => {
-    await axios.post(`${API_BASE_URL}/email/send-verification`, { email });
+export const sendVerificationEmail = async (
+    email: string
+): Promise<{ previewUrl?: string }> => {
+    const response = await axios.post<{ previewUrl?: string }>(
+        `${API_BASE_URL}/email/send-verification`,
+        { email }
+    );
+    return response.data;
 };
 
 export const verifyEmailCode = async (

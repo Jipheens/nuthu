@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCart } from '../hooks/useCart';
 import { useNavigate } from 'react-router-dom';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
@@ -6,6 +6,25 @@ import { createPaymentIntent } from '../services/api';
 import { formatCurrency, getImageUrl } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
 import './CheckoutPage.css';
+
+const VERIFIED_EMAILS_KEY = 'verified_emails';
+
+const getVerifiedEmails = (): string[] => {
+    try {
+        const raw = window.localStorage.getItem(VERIFIED_EMAILS_KEY);
+        const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+        return Array.isArray(parsed)
+            ? parsed.filter((x) => typeof x === 'string')
+            : [];
+    } catch {
+        return [];
+    }
+};
+
+const isEmailVerified = (value: string): boolean => {
+    const normalized = value.trim().toLowerCase();
+    return !!normalized && getVerifiedEmails().includes(normalized);
+};
 
 const CheckoutPage: React.FC = () => {
     const { cartItems, totalAmount, clearCart } = useCart();
@@ -16,9 +35,18 @@ const CheckoutPage: React.FC = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [email, setEmail] = useState<string>(user?.email ?? '');
-    const [confirmEmail, setConfirmEmail] = useState<string>(user?.email ?? '');
     const [emailError, setEmailError] = useState<string | null>(null);
-    const [emailStepComplete, setEmailStepComplete] = useState<boolean>(!!user?.email);
+    const [emailStepComplete, setEmailStepComplete] = useState<boolean>(
+        !!(user?.email && isEmailVerified(user.email))
+    );
+
+    useEffect(() => {
+        const currentEmail = (user?.email ?? email).trim();
+        if (currentEmail && isEmailVerified(currentEmail)) {
+            setEmailStepComplete(true);
+            window.localStorage.setItem('customerEmail', currentEmail);
+        }
+    }, [user?.email, email]);
 
     const validateEmailFormat = (value: string) => {
         // Simple email pattern check; adjust as needed
@@ -29,15 +57,14 @@ const CheckoutPage: React.FC = () => {
         event.preventDefault();
 
         const trimmedEmail = email.trim();
-        const trimmedConfirm = confirmEmail.trim();
 
         if (!validateEmailFormat(trimmedEmail)) {
             setEmailError('Please enter a valid email address.');
             return;
         }
 
-        if (trimmedEmail !== trimmedConfirm) {
-            setEmailError('Email addresses do not match.');
+        if (!isEmailVerified(trimmedEmail)) {
+            setEmailError('Please verify this email (code) before continuing.');
             return;
         }
 
@@ -46,13 +73,38 @@ const CheckoutPage: React.FC = () => {
         setEmailStepComplete(true);
     };
 
+    const placeOrderWithoutPayment = () => {
+        const customerEmail = user?.email ?? email.trim();
+
+        const orderSnapshot = {
+            totalAmount,
+            currency: 'kes',
+            items: cartItems.map((item) => ({
+                productId: item.id,
+                quantity: item.quantity,
+                price: item.price,
+            })),
+            email: customerEmail || undefined,
+            paymentStatus: 'pending' as const,
+        };
+
+        window.localStorage.setItem('lastOrderSnapshot', JSON.stringify(orderSnapshot));
+        clearCart();
+        navigate('/checkout/success');
+    };
+
     const handleCheckout = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!cartItems.length) return;
-        if (!stripe || !elements) return;
 
         if (!emailStepComplete) {
             setErrorMessage('Please verify your email before paying.');
+            return;
+        }
+
+        // If Stripe isn't configured/loaded, fall back to placing the order as pending.
+        if (!stripe || !elements) {
+            placeOrderWithoutPayment();
             return;
         }
 
@@ -62,18 +114,19 @@ const CheckoutPage: React.FC = () => {
         try {
             // Persist a snapshot of the order so we can
             // record it in the database on the success page.
-                const customerEmail = user?.email ?? email;
+            const customerEmail = user?.email ?? email;
 
-                const orderSnapshot = {
+            const orderSnapshot = {
                 totalAmount,
                 currency: 'kes',
                 items: cartItems.map(item => ({
                     productId: item.id,
                     quantity: item.quantity,
                     price: item.price,
-                    })),
-                    // Store the email alongside the order snapshot for later use
-                    email: customerEmail,
+                })),
+                // Store the email alongside the order snapshot for later use
+                email: customerEmail,
+                paymentStatus: 'paid' as const,
             };
             window.localStorage.setItem('lastOrderSnapshot', JSON.stringify(orderSnapshot));
 
@@ -171,17 +224,17 @@ const CheckoutPage: React.FC = () => {
                                     />
                                 </div>
 
-                                <div className="form-group">
-                                    <label className="form-label">Confirm email</label>
-                                    <input
-                                        type="email"
-                                        value={confirmEmail}
-                                        onChange={(e) => setConfirmEmail(e.target.value)}
-                                        className="form-input"
-                                        placeholder="your@email.com"
-                                        required
-                                    />
-                                </div>
+                                <button
+                                    type="button"
+                                    className="checkout-button"
+                                    onClick={() => {
+                                        const trimmed = email.trim();
+                                        if (!trimmed) return;
+                                        navigate(`/verify-email?email=${encodeURIComponent(trimmed)}`);
+                                    }}
+                                >
+                                    Send code / Verify
+                                </button>
 
                                 {emailError && (
                                     <div className="error-message">{emailError}</div>
@@ -212,6 +265,12 @@ const CheckoutPage: React.FC = () => {
                             </div>
 
                             <form onSubmit={handleCheckout} className="checkout-form">
+                                {!stripe && (
+                                    <div className="error-message">
+                                        Card payments aren’t configured yet. You can still place the order and pay later.
+                                    </div>
+                                )}
+
                                 <div className="form-group">
                                     <label className="form-label">Card details</label>
                                     <div className="card-element-wrapper">
@@ -249,6 +308,18 @@ const CheckoutPage: React.FC = () => {
                                 >
                                     {isProcessing ? 'Processing...' : `Pay ${formatCurrency(totalAmount, 'KES')}`}
                                 </button>
+
+                                {!stripe && (
+                                    <button
+                                        type="button"
+                                        className="checkout-button"
+                                        onClick={placeOrderWithoutPayment}
+                                        disabled={isProcessing}
+                                        style={{ marginTop: '0.75rem' }}
+                                    >
+                                        Place order (pay later)
+                                    </button>
+                                )}
                             </form>
                         </div>
                     )}
