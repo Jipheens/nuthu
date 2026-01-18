@@ -16,10 +16,13 @@ import RentalPage from './pages/RentalPage';
 import AppointmentPage from './pages/AppointmentPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import EmailVerificationPage from './pages/EmailVerificationPage';
 
-const stripePromise = loadStripe(
-  (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY as string
-);
+const stripePublishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY as
+  | string
+  | undefined;
+
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 const App: React.FC = () => {
   console.log('App component rendering');
@@ -41,6 +44,7 @@ const App: React.FC = () => {
       }
     />
     <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
+    <Route path="/verify-email" element={<EmailVerificationPage />} />
     <Route path="/manage" element={<ManageProductsPage />} />
     <Route path="/designers" element={<DesignersPage />} />
     <Route path="/rental" element={<RentalPage />} />

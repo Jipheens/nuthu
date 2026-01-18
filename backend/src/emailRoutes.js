@@ -27,11 +27,12 @@ router.post('/send-verification', async (req, res) => {
       expires: Date.now() + 10 * 60 * 1000, // 10 minutes
     });
 
-    await sendVerificationEmail(email, verificationCode);
+    const result = await sendVerificationEmail(email, verificationCode);
 
     res.json({ 
       success: true, 
       message: 'Verification code sent to your email',
+      previewUrl: result?.previewUrl,
     });
   } catch (error) {
     console.error('Error sending verification email:', error);

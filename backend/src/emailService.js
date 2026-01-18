@@ -1,21 +1,45 @@
 const nodemailer = require('nodemailer');
 
-// Create a transporter using Gmail SMTP
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_APP_PASSWORD, // Use App Password, not regular password
-    },
-  });
+const isPlaceholder = (value) => {
+  if (!value) return true;
+  const v = String(value).trim().toLowerCase();
+  return v === 'your_app_password_here' || v === 'your_gmail_app_password';
+};
+
+// Create a transporter using Gmail SMTP (production) or Ethereal (dev fallback)
+const createTransporter = async () => {
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_APP_PASSWORD;
+
+  if (user && pass && !isPlaceholder(pass)) {
+    return {
+      transporter: nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user, pass },
+      }),
+      mode: 'gmail',
+    };
+  }
+
+  // Dev-friendly fallback: Ethereal test inbox (prints preview URL in logs)
+  const testAccount = await nodemailer.createTestAccount();
+  return {
+    transporter: nodemailer.createTransport({
+      host: testAccount.smtp.host,
+      port: testAccount.smtp.port,
+      secure: testAccount.smtp.secure,
+      auth: { user: testAccount.user, pass: testAccount.pass },
+    }),
+    mode: 'ethereal',
+    testAccount,
+  };
 };
 
 // Send order confirmation email
 const sendOrderConfirmation = async (orderDetails) => {
   const { email, orderId, totalAmount, currency, items } = orderDetails;
 
-  const transporter = createTransporter();
+  const { transporter, mode } = await createTransporter();
 
   // Build items list HTML
   const itemsHTML = items
@@ -33,7 +57,7 @@ const sendOrderConfirmation = async (orderDetails) => {
     .join('');
 
   const mailOptions = {
-    from: `"Nuthu Archive" <${process.env.EMAIL_USER}>`,
+    from: `"Archivesbybilly" <${process.env.EMAIL_USER || 'no-reply@archivesbybilly'}>`,
     to: email,
     subject: `Order Confirmation #${orderId} - Nuthu Archive`,
     html: `
@@ -106,7 +130,11 @@ const sendOrderConfirmation = async (orderDetails) => {
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log('Order confirmation email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    const previewUrl = mode === 'ethereal' ? nodemailer.getTestMessageUrl(info) : undefined;
+    if (previewUrl) {
+      console.log('Ethereal preview URL:', previewUrl);
+    }
+    return { success: true, messageId: info.messageId, previewUrl };
   } catch (error) {
     console.error('Error sending order confirmation email:', error);
     throw error;
@@ -115,10 +143,10 @@ const sendOrderConfirmation = async (orderDetails) => {
 
 // Send email verification code
 const sendVerificationEmail = async (email, verificationCode) => {
-  const transporter = createTransporter();
+  const { transporter, mode } = await createTransporter();
 
   const mailOptions = {
-    from: `"Nuthu Archive" <${process.env.EMAIL_USER}>`,
+    from: `"Archivesbybilly" <${process.env.EMAIL_USER || 'no-reply@archivesbybilly'}>`,
     to: email,
     subject: 'Email Verification - Nuthu Archive',
     html: `
@@ -165,7 +193,11 @@ const sendVerificationEmail = async (email, verificationCode) => {
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log('Verification email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    const previewUrl = mode === 'ethereal' ? nodemailer.getTestMessageUrl(info) : undefined;
+    if (previewUrl) {
+      console.log('Ethereal preview URL:', previewUrl);
+    }
+    return { success: true, messageId: info.messageId, previewUrl };
   } catch (error) {
     console.error('Error sending verification email:', error);
     throw error;
