@@ -39,6 +39,13 @@ const EmailVerificationPage: React.FC = () => {
     return params.get('email') || '';
   }, [location.search]);
 
+  const nextPath = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const next = params.get('next') || '';
+    // Only allow internal redirects.
+    return next.startsWith('/') ? next : '/checkout';
+  }, [location.search]);
+
   const [email, setEmail] = useState(user?.email || emailFromQuery);
   const [code, setCode] = useState('');
   const [sending, setSending] = useState(false);
@@ -98,7 +105,7 @@ const EmailVerificationPage: React.FC = () => {
 
       setEmailVerified(trimmedEmail);
       showToast('Email verified successfully.', 'success');
-      navigate('/checkout');
+      navigate(nextPath);
     } finally {
       setVerifying(false);
     }
@@ -170,8 +177,8 @@ const EmailVerificationPage: React.FC = () => {
             </button>
 
             <p style={{ textAlign: 'center', marginTop: '0.25rem', color: '#999', fontSize: '0.875rem' }}>
-              <Link to="/checkout" style={{ color: '#fff', textDecoration: 'underline' }}>
-                Back to checkout
+              <Link to={nextPath} style={{ color: '#fff', textDecoration: 'underline' }}>
+                Back
               </Link>
             </p>
           </div>

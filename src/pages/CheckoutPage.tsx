@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCart } from '../hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
-import { createPaymentIntent } from '../services/api';
+import { createCheckoutSession } from '../services/api';
 import { formatCurrency, getImageUrl } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
 import './CheckoutPage.css';
@@ -29,8 +28,6 @@ const isEmailVerified = (value: string): boolean => {
 const CheckoutPage: React.FC = () => {
     const { cartItems, totalAmount, clearCart } = useCart();
     const navigate = useNavigate();
-    const stripe = useStripe();
-    const elements = useElements();
     const { user } = useAuth();
     const [isProcessing, setIsProcessing] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -102,67 +99,41 @@ const CheckoutPage: React.FC = () => {
             return;
         }
 
-        // If Stripe isn't configured/loaded, fall back to placing the order as pending.
-        if (!stripe || !elements) {
-            placeOrderWithoutPayment();
-            return;
-        }
-
         setIsProcessing(true);
         setErrorMessage(null);
 
         try {
-            // Persist a snapshot of the order so we can
-            // record it in the database on the success page.
-            const customerEmail = user?.email ?? email;
+            // Persist a snapshot of the order so we can record it on the success page.
+            // We mark it as pending until we confirm Stripe session payment status.
+            const customerEmail = (user?.email ?? email).trim();
 
             const orderSnapshot = {
                 totalAmount,
                 currency: 'kes',
-                items: cartItems.map(item => ({
+                items: cartItems.map((item) => ({
                     productId: item.id,
                     quantity: item.quantity,
                     price: item.price,
                 })),
-                // Store the email alongside the order snapshot for later use
                 email: customerEmail,
-                paymentStatus: 'paid' as const,
+                paymentStatus: 'pending' as const,
             };
             window.localStorage.setItem('lastOrderSnapshot', JSON.stringify(orderSnapshot));
 
-            // Create a PaymentIntent on the backend
-            const clientSecret = await createPaymentIntent(totalAmount, 'kes');
-            const cardElement = elements.getElement(CardElement);
-            if (!cardElement) {
-                setErrorMessage('Card input is not ready yet.');
-                setIsProcessing(false);
-                return;
-            }
-
-            const { error, paymentIntent } = await stripe.confirmCardPayment(
-                clientSecret,
-                {
-                    payment_method: {
-                        card: cardElement,
-                    },
-                }
+            const { url } = await createCheckoutSession(
+                cartItems.map((item) => ({
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                })),
+                customerEmail
             );
 
-            if (error) {
-                setErrorMessage(error.message || 'Payment failed. Please try again.');
-                setIsProcessing(false);
-                return;
-            }
-
-            if (paymentIntent && paymentIntent.status === 'succeeded') {
-                clearCart();
-                navigate('/checkout/success');
-            } else {
-                setErrorMessage('Payment was not completed.');
-            }
+            // Redirect to Stripe-hosted Checkout (shipping + billing UI)
+            window.location.assign(url);
         } catch (error) {
             console.error('Checkout failed', error);
-            setErrorMessage('Payment failed. Please try again.');
+            setErrorMessage('Unable to start checkout. Please try again.');
         } finally {
             setIsProcessing(false);
         }
@@ -176,6 +147,7 @@ const CheckoutPage: React.FC = () => {
                     <p>Add some items to your cart before checking out.</p>
                     <a href="/shop" className="continue-shopping">Continue shopping</a>
                 </div>
+
             </div>
         );
     }
@@ -188,7 +160,7 @@ const CheckoutPage: React.FC = () => {
 
                     <div className="checkout-order-summary">
                         <h2>Order Summary</h2>
-                        {cartItems.map(item => (
+                        {cartItems.map((item) => (
                             <div key={item.id} className="checkout-item">
                                 <img src={getImageUrl(item.imageUrl)} alt={item.name} />
                                 <div className="checkout-item-details">
@@ -230,7 +202,9 @@ const CheckoutPage: React.FC = () => {
                                     onClick={() => {
                                         const trimmed = email.trim();
                                         if (!trimmed) return;
-                                        navigate(`/verify-email?email=${encodeURIComponent(trimmed)}`);
+                                        navigate(
+                                            `/verify-email?email=${encodeURIComponent(trimmed)}&next=/checkout`
+                                        );
                                     }}
                                 >
                                     Send code / Verify
@@ -250,7 +224,9 @@ const CheckoutPage: React.FC = () => {
                             <div className="email-verified">
                                 <h2>Step 2: Payment details</h2>
                                 <div className="your-details">
-                                    <p><strong>Email:</strong> {user?.email || email}</p>
+                                    <p>
+                                        <strong>Email:</strong> {user?.email || email}
+                                    </p>
                                     <button
                                         onClick={() => {
                                             setEmailStepComplete(false);
@@ -265,37 +241,9 @@ const CheckoutPage: React.FC = () => {
                             </div>
 
                             <form onSubmit={handleCheckout} className="checkout-form">
-                                {!stripe && (
-                                    <div className="error-message">
-                                        Card payments aren’t configured yet. You can still place the order and pay later.
-                                    </div>
-                                )}
-
-                                <div className="form-group">
-                                    <label className="form-label">Card details</label>
-                                    <div className="card-element-wrapper">
-                                        <CardElement
-                                            options={{
-                                                style: {
-                                                    base: {
-                                                        fontSize: '16px',
-                                                        color: '#fff',
-                                                        '::placeholder': {
-                                                            color: '#666',
-                                                        },
-                                                        backgroundColor: 'transparent',
-                                                    },
-                                                    invalid: {
-                                                        color: '#fa755a',
-                                                    },
-                                                },
-                                            }}
-                                        />
-                                    </div>
-                                    <p className="card-info-text">
-                                        Test card: 4242 4242 4242 4242 | Any future date | Any 3-digit CVC
-                                    </p>
-                                </div>
+                                <p className="test-card-info" style={{ marginTop: '1rem' }}>
+                                    You’ll be redirected to a secure Stripe Checkout page to enter shipping and card details.
+                                </p>
 
                                 {errorMessage && (
                                     <div className="error-message">{errorMessage}</div>
@@ -303,23 +251,24 @@ const CheckoutPage: React.FC = () => {
 
                                 <button
                                     type="submit"
-                                    className="checkout-button"
-                                    disabled={isProcessing || !stripe}
+                                    className={`checkout-button ${isProcessing ? 'processing' : ''}`}
+                                    disabled={isProcessing}
                                 >
-                                    {isProcessing ? 'Processing...' : `Pay ${formatCurrency(totalAmount, 'KES')}`}
+                                    {isProcessing
+                                        ? 'Redirecting...'
+                                        : 'Continue to secure checkout'}
                                 </button>
 
-                                {!stripe && (
+                                <div style={{ marginTop: '1rem' }}>
                                     <button
                                         type="button"
-                                        className="checkout-button"
+                                        className="checkout-secondary"
                                         onClick={placeOrderWithoutPayment}
                                         disabled={isProcessing}
-                                        style={{ marginTop: '0.75rem' }}
                                     >
                                         Place order (pay later)
                                     </button>
-                                )}
+                                </div>
                             </form>
                         </div>
                     )}

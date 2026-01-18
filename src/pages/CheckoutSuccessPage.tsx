@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCart } from '../hooks/useCart';
 import { Link } from 'react-router-dom';
-import { createOrder } from '../services/api';
+import { createOrder, getCheckoutSession } from '../services/api';
 
 const CheckoutSuccessPage: React.FC = () => {
   const { clearCart } = useCart();
@@ -18,6 +18,9 @@ const CheckoutSuccessPage: React.FC = () => {
       }
 
       try {
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get('session_id');
+
         const snapshot = JSON.parse(raw) as {
           totalAmount: number;
           currency: string;
@@ -26,19 +29,34 @@ const CheckoutSuccessPage: React.FC = () => {
           paymentStatus?: 'paid' | 'pending';
         };
 
-        if (snapshot.paymentStatus) setPaymentStatus(snapshot.paymentStatus);
+        let resolvedPaymentStatus: 'paid' | 'pending' = snapshot.paymentStatus || 'paid';
+        let resolvedEmail: string | undefined = snapshot.email;
 
-        if (snapshot.email) {
-          setCustomerEmail(snapshot.email);
-          window.localStorage.setItem('customerEmail', snapshot.email);
+        if (sessionId) {
+          try {
+            const session = await getCheckoutSession(sessionId);
+            if (session.customerEmail && !resolvedEmail) {
+              resolvedEmail = session.customerEmail;
+            }
+            resolvedPaymentStatus = session.paymentStatus === 'paid' ? 'paid' : 'pending';
+          } catch (err) {
+            // If session lookup fails, fall back to snapshot status
+          }
+        }
+
+        setPaymentStatus(resolvedPaymentStatus);
+
+        if (resolvedEmail) {
+          setCustomerEmail(resolvedEmail);
+          window.localStorage.setItem('customerEmail', resolvedEmail);
         }
 
         await createOrder({
           totalAmount: snapshot.totalAmount,
           currency: snapshot.currency,
           items: snapshot.items,
-          email: snapshot.email,
-          paymentStatus: snapshot.paymentStatus,
+          email: resolvedEmail,
+          paymentStatus: resolvedPaymentStatus,
         });
         window.localStorage.removeItem('lastOrderSnapshot');
         clearCart();

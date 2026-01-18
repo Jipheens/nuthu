@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const { ensureSchema } = require('./db');
 
 const productsRoutes = require('./productsRoutes');
 const checkoutRoutes = require('./checkoutRoutes');
@@ -42,6 +43,15 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
 
 const port = process.env.PORT || 4000;
-app.listen(port, () => {
-  console.log(`Backend API listening on http://localhost:${port}`);
-});
+
+(async () => {
+  try {
+    await ensureSchema();
+  } catch (err) {
+    console.error('Failed to ensure DB schema:', err);
+  }
+
+  app.listen(port, () => {
+    console.log(`Backend API listening on http://localhost:${port}`);
+  });
+})();

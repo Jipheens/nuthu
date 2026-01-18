@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { sendVerificationEmail } from '../services/api';
 
 const LoginPage: React.FC = () => {
-    const [email, setEmail] = useState('');
+    const location = useLocation();
+    const emailFromQuery = useMemo(() => {
+        const params = new URLSearchParams(location.search);
+        return params.get('email') || '';
+    }, [location.search]);
+
+    const [email, setEmail] = useState(emailFromQuery);
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
     const { showToast } = useToast();
     const navigate = useNavigate();
-    const location = useLocation();
 
     const from = (location.state as any)?.from?.pathname || '/';
 
@@ -23,10 +29,23 @@ const LoginPage: React.FC = () => {
             showToast('Welcome back!', 'success');
             navigate(from, { replace: true });
         } catch (error: any) {
-            showToast(
-                error.response?.data?.error || 'Login failed. Please check your credentials.',
-                'error'
-            );
+            const code = error?.response?.data?.code;
+            const message =
+                error?.response?.data?.error ||
+                'Login failed. Please check your credentials.';
+
+            if (code === 'EMAIL_NOT_VERIFIED') {
+                try {
+                    await sendVerificationEmail(email);
+                } catch {
+                    // ignore
+                }
+                showToast(message, 'error');
+                navigate(`/verify-email?email=${encodeURIComponent(email)}&next=/login`);
+                return;
+            }
+
+            showToast(message, 'error');
         } finally {
             setLoading(false);
         }
@@ -38,7 +57,7 @@ const LoginPage: React.FC = () => {
                 <div className="auth-container">
                     <h1 className="section-title">Login</h1>
                     <p className="page-subtitle" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                        Welcome back to Nuthu Archive
+                        Welcome back to Archivesbybilly
                     </p>
 
                     <form onSubmit={handleSubmit} className="auth-form">

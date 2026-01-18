@@ -46,7 +46,7 @@ const RegisterPage: React.FC = () => {
                 showToast('Could not send verification code yet. You can resend it during checkout.', 'error');
             }
 
-            navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+            navigate(`/verify-email?email=${encodeURIComponent(email)}&next=/login`);
         } catch (error: any) {
             showToast(
                 error.response?.data?.error || 'Registration failed. Please try again.',

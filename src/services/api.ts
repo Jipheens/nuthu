@@ -85,17 +85,35 @@ export const deleteProduct = async (id: string): Promise<void> => {
 };
 
 export const createCheckoutSession = async (
-    items: { name: string; price: number; quantity: number }[]
-): Promise<string> => {
-    const response = await axios.post<{ url: string }>(
+    items: { name: string; price: number; quantity: number }[],
+    customerEmail?: string
+): Promise<{ url: string; id: string }> => {
+    const response = await axios.post<{ url: string; id: string }>(
         `${API_BASE_URL}/checkout/create-session`,
         {
             items,
             currency: 'kes',
+            customerEmail,
         }
     );
 
-    return response.data.url;
+    return response.data;
+};
+
+export const getCheckoutSession = async (
+    sessionId: string
+): Promise<{
+    id: string;
+    status: string | null;
+    paymentStatus: 'paid' | 'unpaid' | 'no_payment_required' | null;
+    amountTotal: number | null;
+    currency: string | null;
+    customerEmail: string | null;
+}> => {
+    const response = await axios.get(
+        `${API_BASE_URL}/checkout/session/${encodeURIComponent(sessionId)}`
+    );
+    return response.data;
 };
 
 // Stripe Elements: create a PaymentIntent for on-site card payments
@@ -163,11 +181,13 @@ export interface User {
     id: number;
     email: string;
     name: string | null;
+    emailVerified?: boolean;
 }
 
 export interface AuthResponse {
     user: User;
-    token: string;
+    token?: string;
+    requiresEmailVerification?: boolean;
 }
 
 export const register = async (

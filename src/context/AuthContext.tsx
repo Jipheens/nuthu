@@ -44,7 +44,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (email: string, password: string, name?: string) => {
     const response = await api.register(email, password, name);
-    setUser(response.user);
+
+    // Backend now requires email verification before allowing login.
+    // So we intentionally do NOT set the authenticated user here.
+    if (!response?.requiresEmailVerification) {
+      setUser(response.user);
+    } else {
+      setUser(null);
+    }
   };
 
   const logout = async () => {

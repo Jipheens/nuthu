@@ -11,14 +11,16 @@ router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
 
-    if (!email || !password) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
     // Check if user already exists
     const [existingUsers] = await pool.query(
       'SELECT id FROM users WHERE email = ?',
-      [email]
+      [normalizedEmail]
     );
 
     if (existingUsers.length > 0) {
@@ -30,28 +32,14 @@ router.post('/register', async (req, res) => {
 
     // Create user
     const [result] = await pool.query(
-      'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
-      [email, hashedPassword, name || null]
+      'INSERT INTO users (email, password, name, email_verified) VALUES (?, ?, ?, ?)',
+      [normalizedEmail, hashedPassword, name || null, 0]
     );
-
-    // Generate token
-    const token = jwt.sign(
-      { userId: result.insertId, email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'lax'
-    });
 
     res.status(201).json({
-      message: 'User registered successfully',
-      user: { id: result.insertId, email, name },
-      token
+      message: 'User registered successfully. Please verify your email before logging in.',
+      requiresEmailVerification: true,
+      user: { id: result.insertId, email: normalizedEmail, name: name || null, emailVerified: false },
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -64,14 +52,16 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
     // Find user
     const [users] = await pool.query(
       'SELECT * FROM users WHERE email = ?',
-      [email]
+      [normalizedEmail]
     );
 
     if (users.length === 0) {
@@ -79,6 +69,13 @@ router.post('/login', async (req, res) => {
     }
 
     const user = users[0];
+
+    if (user.email_verified === 0 || user.email_verified === false) {
+      return res.status(403).json({
+        error: 'Please verify your email before logging in.',
+        code: 'EMAIL_NOT_VERIFIED',
+      });
+    }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
@@ -103,7 +100,7 @@ router.post('/login', async (req, res) => {
 
     res.json({
       message: 'Login successful',
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id, email: user.email, name: user.name, emailVerified: !!user.email_verified },
       token
     });
   } catch (error) {
@@ -122,7 +119,7 @@ router.post('/logout', (req, res) => {
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const [users] = await pool.query(
-      'SELECT id, email, name, created_at FROM users WHERE id = ?',
+      'SELECT id, email, name, email_verified, created_at FROM users WHERE id = ?',
       [req.user.userId]
     );
 
@@ -130,7 +127,16 @@ router.get('/me', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ user: users[0] });
+    const u = users[0];
+    res.json({
+      user: {
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        emailVerified: !!u.email_verified,
+        created_at: u.created_at,
+      },
+    });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Failed to get user' });

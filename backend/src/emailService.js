@@ -59,7 +59,7 @@ const sendOrderConfirmation = async (orderDetails) => {
   const mailOptions = {
     from: `"Archivesbybilly" <${process.env.EMAIL_USER || 'no-reply@archivesbybilly'}>`,
     to: email,
-    subject: `Order Confirmation #${orderId} - Nuthu Archive`,
+    subject: `Order Confirmation #${orderId} - Archivesbybilly`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -80,14 +80,14 @@ const sendOrderConfirmation = async (orderDetails) => {
       <body>
         <div class="container">
           <div class="header">
-            <h1>Nuthu Archive</h1>
+            <h1>Archivesbybilly</h1>
             <p>Thank you for your order!</p>
           </div>
           
           <div class="content">
             <h2>Order Confirmation</h2>
             <p>Hi there,</p>
-            <p>Thank you for shopping with Nuthu Archive. Your order has been received and is being processed.</p>
+            <p>Thank you for shopping with Archivesbybilly. Your order has been received and is being processed.</p>
             
             <p><strong>Order Number:</strong> #${orderId}</p>
             <p><strong>Email:</strong> ${email}</p>
@@ -118,7 +118,7 @@ const sendOrderConfirmation = async (orderDetails) => {
           </div>
           
           <div class="footer">
-            <p>© ${new Date().getFullYear()} Nuthu Archive. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} Archivesbybilly. All rights reserved.</p>
             <p>This is an automated email. Please do not reply to this message.</p>
           </div>
         </div>
@@ -148,7 +148,7 @@ const sendVerificationEmail = async (email, verificationCode) => {
   const mailOptions = {
     from: `"Archivesbybilly" <${process.env.EMAIL_USER || 'no-reply@archivesbybilly'}>`,
     to: email,
-    subject: 'Email Verification - Nuthu Archive',
+    subject: 'Email Verification - Archivesbybilly',
     html: `
       <!DOCTYPE html>
       <html>
@@ -166,7 +166,7 @@ const sendVerificationEmail = async (email, verificationCode) => {
       <body>
         <div class="container">
           <div class="header">
-            <h1>Nuthu Archive</h1>
+            <h1>Archivesbybilly</h1>
             <p>Email Verification</p>
           </div>
           
@@ -181,7 +181,7 @@ const sendVerificationEmail = async (email, verificationCode) => {
           </div>
           
           <div class="footer">
-            <p>© ${new Date().getFullYear()} Nuthu Archive. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} Archivesbybilly. All rights reserved.</p>
             <p>This is an automated email. Please do not reply to this message.</p>
           </div>
         </div>
