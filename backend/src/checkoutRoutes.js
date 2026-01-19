@@ -35,16 +35,41 @@ const ALL_COUNTRIES = [
   'ZA','ZM','ZW'
 ];
 
-const isPlaceholderKey = (key) => {
-  if (!key) return true;
-  const v = String(key).trim();
-  return v.includes('your_key_here') || v === 'sk_test_your_key_here' || v === 'sk_live_your_key_here';
+const normalizeStripeSecret = (key) => {
+  if (!key) return '';
+  return String(key).trim().replace(/^['"]|['"]$/g, '');
 };
 
-if (stripeSecret && !isPlaceholderKey(stripeSecret)) {
-  stripe = new Stripe(stripeSecret, { apiVersion: '2024-06-20' });
+const isStripeSecretKeyPlaceholderOrRedacted = (key) => {
+  if (!key) return true;
+  const v = normalizeStripeSecret(key);
+  if (!v) return true;
+  // Common placeholders
+  if (v.includes('your_key_here') || v.includes('your_stripe_secret_key')) return true;
+  if (v === 'sk_test_your_key_here' || v === 'sk_live_your_key_here') return true;
+  // Common redaction formats that will never work with Stripe
+  if (v.includes('*') || v.includes('…') || v.toLowerCase().includes('redacted')) return true;
+  return false;
+};
+
+const isValidStripeSecretKeyFormat = (key) => {
+  const v = normalizeStripeSecret(key);
+  // Stripe secret keys are generally `sk_(test|live)_...` (and should not contain spaces)
+  return /^sk_(test|live)_[A-Za-z0-9]+$/.test(v);
+};
+
+const stripeSecretNormalized = normalizeStripeSecret(stripeSecret);
+
+if (
+  stripeSecretNormalized &&
+  !isStripeSecretKeyPlaceholderOrRedacted(stripeSecretNormalized) &&
+  isValidStripeSecretKeyFormat(stripeSecretNormalized)
+) {
+  stripe = new Stripe(stripeSecretNormalized, { apiVersion: '2024-06-20' });
 } else {
-  console.warn('STRIPE_SECRET_KEY is not set. Checkout will be disabled.');
+  console.warn(
+    'Stripe is not configured (missing/placeholder/invalid STRIPE_SECRET_KEY). Checkout will be disabled.'
+  );
 }
 
 // POST /api/checkout/create-session (Stripe-hosted Checkout page)
@@ -53,8 +78,8 @@ router.post('/create-session', async (req, res) => {
 
   if (!stripe) {
     return res
-      .status(500)
-      .json({ message: 'Checkout is not configured. Please try again later.' });
+      .status(503)
+      .json({ message: 'Checkout is not configured on the server (Stripe key missing/invalid).' });
   }
 
   if (!Array.isArray(items) || !items.length) {
@@ -104,7 +129,17 @@ router.post('/create-session', async (req, res) => {
 
     res.json({ url: session.url, id: session.id });
   } catch (err) {
-    console.error('Error creating checkout session', err);
+    const safeErr =
+      err && typeof err === 'object'
+        ? {
+            type: err.type,
+            code: err.code,
+            statusCode: err.statusCode,
+            requestId: err.requestId,
+            rawType: err.rawType,
+          }
+        : err;
+    console.error('Error creating checkout session', safeErr);
     res.status(500).json({ message: 'Failed to start checkout' });
   }
 });
@@ -115,8 +150,8 @@ router.get('/session/:id', async (req, res) => {
 
   if (!stripe) {
     return res
-      .status(500)
-      .json({ message: 'Checkout is not configured. Please try again later.' });
+      .status(503)
+      .json({ message: 'Checkout is not configured on the server (Stripe key missing/invalid).' });
   }
 
   if (!id || typeof id !== 'string') {
@@ -134,7 +169,17 @@ router.get('/session/:id', async (req, res) => {
       customerEmail: session.customer_details?.email || session.customer_email || null,
     });
   } catch (err) {
-    console.error('Error retrieving checkout session', err);
+    const safeErr =
+      err && typeof err === 'object'
+        ? {
+            type: err.type,
+            code: err.code,
+            statusCode: err.statusCode,
+            requestId: err.requestId,
+            rawType: err.rawType,
+          }
+        : err;
+    console.error('Error retrieving checkout session', safeErr);
     res.status(500).json({ message: 'Failed to retrieve checkout session' });
   }
 });
@@ -145,8 +190,8 @@ router.post('/create-payment-intent', async (req, res) => {
 
   if (!stripe) {
     return res
-      .status(500)
-      .json({ message: 'Checkout is not configured. Please try again later.' });
+      .status(503)
+      .json({ message: 'Checkout is not configured on the server (Stripe key missing/invalid).' });
   }
 
   if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
@@ -162,7 +207,17 @@ router.post('/create-payment-intent', async (req, res) => {
 
     res.json({ clientSecret: paymentIntent.client_secret });
   } catch (err) {
-    console.error('Error creating payment intent', err);
+    const safeErr =
+      err && typeof err === 'object'
+        ? {
+            type: err.type,
+            code: err.code,
+            statusCode: err.statusCode,
+            requestId: err.requestId,
+            rawType: err.rawType,
+          }
+        : err;
+    console.error('Error creating payment intent', safeErr);
     res.status(500).json({ message: 'Failed to start payment' });
   }
 });

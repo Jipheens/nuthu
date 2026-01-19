@@ -1,6 +1,21 @@
 const mysql = require('mysql2/promise');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const fs = require('fs');
+
+const loadEnv = () => {
+  const baseEnvPath = path.join(__dirname, '..', '.env');
+  const nodeEnv = process.env.NODE_ENV ? String(process.env.NODE_ENV).trim() : '';
+  const envVariantPath = nodeEnv ? path.join(__dirname, '..', `.env.${nodeEnv}`) : null;
+
+  if (fs.existsSync(baseEnvPath)) {
+    require('dotenv').config({ path: baseEnvPath });
+  }
+  if (envVariantPath && fs.existsSync(envVariantPath)) {
+    require('dotenv').config({ path: envVariantPath });
+  }
+};
+
+loadEnv();
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,

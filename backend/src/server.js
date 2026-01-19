@@ -2,7 +2,23 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const fs = require('fs');
+
+const loadEnv = () => {
+  const baseEnvPath = path.join(__dirname, '..', '.env');
+  const nodeEnv = process.env.NODE_ENV ? String(process.env.NODE_ENV).trim() : '';
+  const envVariantPath = nodeEnv ? path.join(__dirname, '..', `.env.${nodeEnv}`) : null;
+
+  // Load .env first (common for local/dev), then overlay env-specific file if present.
+  if (fs.existsSync(baseEnvPath)) {
+    require('dotenv').config({ path: baseEnvPath });
+  }
+  if (envVariantPath && fs.existsSync(envVariantPath)) {
+    require('dotenv').config({ path: envVariantPath });
+  }
+};
+
+loadEnv();
 const { ensureSchema } = require('./db');
 
 const productsRoutes = require('./productsRoutes');
