@@ -17,6 +17,8 @@ import AppointmentPage from './pages/AppointmentPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
+import './styles/globals.css';
+import './styles/changes.css';
 
 const stripePublishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY as
   | string
