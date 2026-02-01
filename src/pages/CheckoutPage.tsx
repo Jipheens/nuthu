@@ -126,8 +126,10 @@ const CheckoutPage: React.FC = () => {
                     price: item.price,
                     quantity: item.quantity,
                 })),
-                customerEmail
+                customerEmail,
+                orderSnapshot
             );
+
 
             // Redirect to Stripe-hosted Checkout (shipping + billing UI)
             window.location.assign(url);

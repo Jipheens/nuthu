@@ -43,8 +43,8 @@ const mapProduct = (dto: ProductDTO): Product => {
             typeof dto.in_stock === 'boolean'
                 ? dto.in_stock
                 : dto.in_stock == null
-                ? true
-                : dto.in_stock === 1,
+                    ? true
+                    : dto.in_stock === 1,
     };
 };
 
@@ -86,7 +86,13 @@ export const deleteProduct = async (id: string): Promise<void> => {
 
 export const createCheckoutSession = async (
     items: { name: string; price: number; quantity: number }[],
-    customerEmail?: string
+    customerEmail?: string,
+    orderData?: {
+        totalAmount: number;
+        currency: string;
+        items: { productId: string; quantity: number; price: number }[];
+        email?: string;
+    }
 ): Promise<{ url: string; id: string }> => {
     const response = await axios.post<{ url: string; id: string }>(
         `${API_BASE_URL}/checkout/create-session`,
@@ -94,11 +100,13 @@ export const createCheckoutSession = async (
             items,
             currency: 'kes',
             customerEmail,
+            orderData,
         }
     );
 
     return response.data;
 };
+
 
 export const getCheckoutSession = async (
     sessionId: string

@@ -1,75 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const { pool } = require('./db');
-const { sendOrderConfirmation } = require('./emailService');
+const { createOrderInDB } = require('./orderService');
 
 // POST /api/orders
 // Expects: { totalAmount, currency, email?, paymentStatus?, items: [{ productId, quantity, price }] }
 router.post('/', async (req, res) => {
-  const { totalAmount, currency = 'kes', email, items, paymentStatus } = req.body;
-
-  if (!Array.isArray(items) || !items.length || totalAmount == null) {
-    return res.status(400).json({ message: 'Invalid order payload' });
-  }
-
-  const conn = await pool.getConnection();
   try {
-    await conn.beginTransaction();
-
-    const safeStatus =
-      paymentStatus === 'pending' || paymentStatus === 'paid'
-        ? paymentStatus
-        : 'paid';
-
-    const [orderResult] = await conn.query(
-      'INSERT INTO orders (total_amount, currency, customer_email, payment_status) VALUES (?, ?, ?, ?)',
-      [totalAmount, currency, email || null, safeStatus]
-    );
-
-    const orderId = orderResult.insertId;
-
-    const values = items.map((item) => [
-      orderId,
-      item.productId,
-      item.quantity,
-      item.price,
-    ]);
-
-    await conn.query(
-      'INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase) VALUES ?;',
-      [values]
-    );
-
-    await conn.commit();
-
-    // Send order confirmation email if email is provided
-    if (email) {
-      try {
-        await sendOrderConfirmation({
-          email,
-          orderId,
-          totalAmount,
-          currency,
-          items: items.map(item => ({
-            productName: item.productName || item.name || 'Product',
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        });
-      } catch (emailError) {
-        console.error('Failed to send order confirmation email:', emailError);
-        // Don't fail the order if email fails
-      }
-    }
-
+    const orderId = await createOrderInDB(req.body);
     res.status(201).json({ id: orderId });
   } catch (err) {
-    await conn.rollback();
+    if (err.message === 'Invalid order payload') {
+      return res.status(400).json({ message: err.message });
+    }
     console.error('Error creating order', err);
     res.status(500).json({ message: 'Failed to create order' });
-  } finally {
-    conn.release();
   }
 });
 
 module.exports = router;
+

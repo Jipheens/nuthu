@@ -33,14 +33,20 @@ const app = express();
 
 // Configure CORS to allow frontend access
 const corsOptions = {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
-    credentials: true,
-    optionsSuccessStatus: 200
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  credentials: true,
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
+
+// Stripe webhook needs raw body for signature verification.
+// We apply this BEFORE the global express.json() middleware.
+app.post('/api/checkout/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
+
 
 // Serve static uploaded images with CORS headers
 const uploadsPath = path.join(__dirname, '..', 'uploads');
