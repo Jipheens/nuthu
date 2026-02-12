@@ -28,6 +28,12 @@ const CheckoutSuccessPage: React.FC = () => {
           items: { productId: string; quantity: number; price: number }[];
           email?: string;
           paymentStatus?: 'paid' | 'pending';
+          shipping_address?: string;
+          shipping_city?: string;
+          shipping_state?: string;
+          shipping_zip?: string;
+          shipping_country?: string;
+          phone_number?: string;
         };
 
         let resolvedPaymentStatus: 'paid' | 'pending' = snapshot.paymentStatus || 'paid';
@@ -58,6 +64,12 @@ const CheckoutSuccessPage: React.FC = () => {
           items: snapshot.items,
           email: resolvedEmail,
           paymentStatus: resolvedPaymentStatus,
+          shipping_address: snapshot.shipping_address,
+          shipping_city: snapshot.shipping_city,
+          shipping_state: snapshot.shipping_state,
+          shipping_zip: snapshot.shipping_zip,
+          shipping_country: snapshot.shipping_country,
+          phone_number: snapshot.phone_number,
         });
         window.localStorage.removeItem('lastOrderSnapshot');
         clearCart();

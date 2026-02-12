@@ -48,6 +48,9 @@ router.post('/create-session', async (req, res) => {
       metadata: {
         order_id: orderId ? String(orderId) : '',
         customer_email: customerEmail || '',
+        shipping_address: orderData?.shipping_address || '',
+        shipping_city: orderData?.shipping_city || '',
+        phone_number: orderData?.phone_number || '',
         custom_fields: items.map(item => ({
           display_name: item.name,
           variable_name: item.name.toLowerCase().replace(/ /g, '_'),

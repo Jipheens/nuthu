@@ -35,11 +35,21 @@ const createTransporter = async () => {
   };
 };
 
-
-
 // Send order confirmation email
 const sendOrderConfirmation = async (orderDetails) => {
-  const { email, orderId, totalAmount, currency, items } = orderDetails;
+  const {
+    email,
+    orderId,
+    totalAmount,
+    currency,
+    items,
+    shipping_address,
+    shipping_city,
+    shipping_state,
+    shipping_zip,
+    shipping_country,
+    phone_number
+  } = orderDetails;
 
   const { transporter, mode } = await createTransporter();
 
@@ -93,6 +103,14 @@ const sendOrderConfirmation = async (orderDetails) => {
             
             <p><strong>Order Number:</strong> #${orderId}</p>
             <p><strong>Email:</strong> ${email}</p>
+            ${phone_number ? `<p><strong>Phone:</strong> ${phone_number}</p>` : ''}
+
+            <h3>Shipping Address:</h3>
+            <p style="background: #f9f9f9; padding: 15px; border-left: 4px solid #000;">
+              ${shipping_address || 'N/A'}<br>
+              ${shipping_city || ''}${shipping_state ? `, ${shipping_state}` : ''} ${shipping_zip || ''}<br>
+              ${shipping_country || ''}
+            </p>
             
             <h3>Order Details:</h3>
             <table class="order-table">

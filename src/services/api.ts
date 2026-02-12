@@ -39,12 +39,12 @@ const mapProduct = (dto: ProductDTO): Product => {
     if (imageUrl) {
         // Extract just the path (e.g., /uploads/filename.jpg)
         let uploadPath = '';
-        
+
         if (imageUrl.includes('/uploads/')) {
             // Get everything from /uploads/ onwards
             uploadPath = imageUrl.substring(imageUrl.indexOf('/uploads/'));
         }
-        
+
         if (uploadPath) {
             // Always use relative path - let the browser resolve it
             imageUrl = uploadPath;
@@ -113,6 +113,12 @@ export const createCheckoutSession = async (
         currency: string;
         items: { productId: string; quantity: number; price: number }[];
         email?: string;
+        shipping_address?: string;
+        shipping_city?: string;
+        shipping_state?: string;
+        shipping_zip?: string;
+        shipping_country?: string;
+        phone_number?: string;
     }
 ): Promise<{ url: string; id: string }> => {
     const response = await axios.post<{ url: string; id: string }>(
@@ -170,6 +176,12 @@ export const createOrder = async (
         items: { productId: string; quantity: number; price: number }[];
         email?: string;
         paymentStatus?: 'paid' | 'pending';
+        shipping_address?: string;
+        shipping_city?: string;
+        shipping_state?: string;
+        shipping_zip?: string;
+        shipping_country?: string;
+        phone_number?: string;
     }
 ): Promise<number> => {
     const response = await axios.post<{ id: number }>(

@@ -37,6 +37,13 @@ const CheckoutPage: React.FC = () => {
         !!(user?.email && isEmailVerified(user.email))
     );
 
+    const [shippingAddress, setShippingAddress] = useState('');
+    const [shippingCity, setShippingCity] = useState('');
+    const [shippingState, setShippingState] = useState('');
+    const [shippingZip, setShippingZip] = useState('');
+    const [shippingCountry, setShippingCountry] = useState('Kenya');
+    const [phoneNumber, setPhoneNumber] = useState('');
+
     useEffect(() => {
         const currentEmail = (user?.email ?? email).trim();
         if (currentEmail && isEmailVerified(currentEmail)) {
@@ -73,6 +80,11 @@ const CheckoutPage: React.FC = () => {
     const placeOrderWithoutPayment = () => {
         const customerEmail = user?.email ?? email.trim();
 
+        if (!shippingAddress || !shippingCity || !phoneNumber) {
+            setErrorMessage('Please fill in all required shipping details.');
+            return;
+        }
+
         const orderSnapshot = {
             totalAmount,
             currency: 'kes',
@@ -83,6 +95,12 @@ const CheckoutPage: React.FC = () => {
             })),
             email: customerEmail || undefined,
             paymentStatus: 'pending' as const,
+            shipping_address: shippingAddress,
+            shipping_city: shippingCity,
+            shipping_state: shippingState,
+            shipping_zip: shippingZip,
+            shipping_country: shippingCountry,
+            phone_number: phoneNumber
         };
 
         window.localStorage.setItem('lastOrderSnapshot', JSON.stringify(orderSnapshot));
@@ -96,6 +114,11 @@ const CheckoutPage: React.FC = () => {
 
         if (!emailStepComplete) {
             setErrorMessage('Please verify your email before paying.');
+            return;
+        }
+
+        if (!shippingAddress || !shippingCity || !phoneNumber) {
+            setErrorMessage('Please fill in all required shipping details.');
             return;
         }
 
@@ -118,6 +141,12 @@ const CheckoutPage: React.FC = () => {
                 })),
                 email: customerEmail,
                 paymentStatus: 'pending' as const,
+                shipping_address: shippingAddress,
+                shipping_city: shippingCity,
+                shipping_state: shippingState,
+                shipping_zip: shippingZip,
+                shipping_country: shippingCountry,
+                phone_number: phoneNumber
             };
             window.localStorage.setItem('lastOrderSnapshot', JSON.stringify(orderSnapshot));
 
@@ -244,8 +273,80 @@ const CheckoutPage: React.FC = () => {
                             </div>
 
                             <form onSubmit={handleCheckout} className="checkout-form">
-                                <p className="test-card-info" style={{ marginTop: '1rem' }}>
-                                    You’ll be redirected to a secure payment page to enter shipping and payment details.
+                                <div className="shipping-details">
+                                    <h3>Shipping Address</h3>
+                                    <div className="form-group">
+                                        <label className="form-label">Address</label>
+                                        <input
+                                            type="text"
+                                            value={shippingAddress}
+                                            onChange={(e) => setShippingAddress(e.target.value)}
+                                            className="form-input"
+                                            placeholder="House No, Street name"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label className="form-label">City</label>
+                                            <input
+                                                type="text"
+                                                value={shippingCity}
+                                                onChange={(e) => setShippingCity(e.target.value)}
+                                                className="form-input"
+                                                placeholder="Nairobi"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">Phone Number</label>
+                                            <input
+                                                type="tel"
+                                                value={phoneNumber}
+                                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                                className="form-input"
+                                                placeholder="+254..."
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label className="form-label">State / Province</label>
+                                            <input
+                                                type="text"
+                                                value={shippingState}
+                                                onChange={(e) => setShippingState(e.target.value)}
+                                                className="form-input"
+                                                placeholder="Nairobi County"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">ZIP / Postal Code</label>
+                                            <input
+                                                type="text"
+                                                value={shippingZip}
+                                                onChange={(e) => setShippingZip(e.target.value)}
+                                                className="form-input"
+                                                placeholder="00100"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Country</label>
+                                        <input
+                                            type="text"
+                                            value={shippingCountry}
+                                            onChange={(e) => setShippingCountry(e.target.value)}
+                                            className="form-input"
+                                            placeholder="Kenya"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <p className="test-card-info" style={{ marginTop: '1.5rem' }}>
+                                    You’ll be redirected to a secure payment page to complete your payment.
                                 </p>
 
 

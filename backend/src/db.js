@@ -86,10 +86,30 @@ const ensureSchema = async () => {
       `);
     } else {
       const [orderColumns] = await conn.query(
-        `SELECT 1 as ok FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'orders' AND column_name = 'customer_email' LIMIT 1`
+        `SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'orders'`
       );
-      if (orderColumns.length === 0) {
+      const columnNames = orderColumns.map(col => col.column_name);
+
+      if (!columnNames.includes('customer_email')) {
         await conn.query(`ALTER TABLE orders ADD COLUMN customer_email VARCHAR(255) AFTER currency`);
+      }
+      if (!columnNames.includes('shipping_address')) {
+        await conn.query(`ALTER TABLE orders ADD COLUMN shipping_address TEXT AFTER customer_email`);
+      }
+      if (!columnNames.includes('shipping_city')) {
+        await conn.query(`ALTER TABLE orders ADD COLUMN shipping_city VARCHAR(255) AFTER shipping_address`);
+      }
+      if (!columnNames.includes('shipping_state')) {
+        await conn.query(`ALTER TABLE orders ADD COLUMN shipping_state VARCHAR(255) AFTER shipping_city`);
+      }
+      if (!columnNames.includes('shipping_zip')) {
+        await conn.query(`ALTER TABLE orders ADD COLUMN shipping_zip VARCHAR(20) AFTER shipping_state`);
+      }
+      if (!columnNames.includes('shipping_country')) {
+        await conn.query(`ALTER TABLE orders ADD COLUMN shipping_country VARCHAR(255) AFTER shipping_zip`);
+      }
+      if (!columnNames.includes('phone_number')) {
+        await conn.query(`ALTER TABLE orders ADD COLUMN phone_number VARCHAR(20) AFTER shipping_country`);
       }
     }
 
