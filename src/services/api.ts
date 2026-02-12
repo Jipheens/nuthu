@@ -9,6 +9,15 @@ const API_BASE_URL =
 // Enable cookies to be sent with requests
 axios.defaults.withCredentials = true;
 
+// Add axios interceptor to include auth token from localStorage
+axios.interceptors.request.use((config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
 // Shape returned by the backend (MariaDB rows)
 interface ProductDTO {
     id: number;
@@ -26,8 +35,20 @@ const API_ORIGIN = API_BASE_URL.replace(/\/api$/, '');
 const mapProduct = (dto: ProductDTO): Product => {
     let imageUrl = dto.image_url || '';
 
-    if (imageUrl.startsWith('/uploads/')) {
-        imageUrl = `${API_ORIGIN}${imageUrl}`;
+    // Normalize image URLs to use current API origin
+    if (imageUrl) {
+        // Extract just the path (e.g., /uploads/filename.jpg)
+        let uploadPath = '';
+        
+        if (imageUrl.includes('/uploads/')) {
+            // Get everything from /uploads/ onwards
+            uploadPath = imageUrl.substring(imageUrl.indexOf('/uploads/'));
+        }
+        
+        if (uploadPath) {
+            // Always use relative path - let the browser resolve it
+            imageUrl = uploadPath;
+        }
     }
 
     return {
@@ -218,10 +239,15 @@ export const login = async (
         `${API_BASE_URL}/auth/login`,
         { email, password }
     );
+    // Store token in localStorage for Authorization header
+    if (response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
+    }
     return response.data;
 };
 
 export const logout = async (): Promise<void> => {
+    localStorage.removeItem('authToken');
     await axios.post(`${API_BASE_URL}/auth/logout`);
 };
 

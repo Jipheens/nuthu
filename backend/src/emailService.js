@@ -35,6 +35,8 @@ const createTransporter = async () => {
   };
 };
 
+
+
 // Send order confirmation email
 const sendOrderConfirmation = async (orderDetails) => {
   const { email, orderId, totalAmount, currency, items } = orderDetails;

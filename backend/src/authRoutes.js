@@ -91,9 +91,11 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Note: secure should be true only when using HTTPS
+    // Set COOKIE_SECURE=true in production when SSL is configured
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.COOKIE_SECURE === 'true',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       sameSite: 'lax'
     });

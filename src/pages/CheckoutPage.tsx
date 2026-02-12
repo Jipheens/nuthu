@@ -109,7 +109,8 @@ const CheckoutPage: React.FC = () => {
 
             const orderSnapshot = {
                 totalAmount,
-                currency: 'kes',
+                currency: 'KES',
+
                 items: cartItems.map((item) => ({
                     productId: item.id,
                     quantity: item.quantity,
@@ -244,8 +245,9 @@ const CheckoutPage: React.FC = () => {
 
                             <form onSubmit={handleCheckout} className="checkout-form">
                                 <p className="test-card-info" style={{ marginTop: '1rem' }}>
-                                    You’ll be redirected to a secure Stripe Checkout page to enter shipping and card details.
+                                    You’ll be redirected to a secure payment page to enter shipping and payment details.
                                 </p>
+
 
                                 {errorMessage && (
                                     <div className="error-message">{errorMessage}</div>

@@ -6,10 +6,9 @@ const fs = require('fs');
 
 const loadEnv = () => {
   const baseEnvPath = path.join(__dirname, '..', '.env');
-  const nodeEnv = process.env.NODE_ENV ? String(process.env.NODE_ENV).trim() : '';
+  const nodeEnv = process.env.NODE_ENV ? process.env.NODE_ENV.trim() : '';
   const envVariantPath = nodeEnv ? path.join(__dirname, '..', `.env.${nodeEnv}`) : null;
 
-  // Load .env first (common for local/dev), then overlay env-specific file if present.
   if (fs.existsSync(baseEnvPath)) {
     require('dotenv').config({ path: baseEnvPath });
   }
@@ -31,24 +30,37 @@ const cartRoutes = require('./cartRoutes');
 
 const app = express();
 
-// Configure CORS to allow frontend access
+// Allowed origins for CORS
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://173.212.221.125:3000',
+  'http://archivesbybilly.com',
+  'http://www.archivesbybilly.com',
+  'https://archivesbybilly.com',
+  'https://www.archivesbybilly.com'
+];
+
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
 
-// Stripe webhook needs raw body for signature verification.
-// We apply this BEFORE the global express.json() middleware.
 app.post('/api/checkout/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
 
-
-// Serve static uploaded images with CORS headers
 const uploadsPath = path.join(__dirname, '..', 'uploads');
 app.use('/uploads', cors(corsOptions), express.static(uploadsPath));
 

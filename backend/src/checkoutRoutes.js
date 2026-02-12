@@ -1,64 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const Stripe = require('stripe');
+const axios = require('axios');
+const crypto = require('crypto');
 const { pool } = require('./db');
 const { createOrderInDB } = require('./orderService');
 
-const stripeSecret = process.env.STRIPE_SECRET_KEY;
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-let stripe = null;
-
-// ... (ALL_COUNTRIES and helper functions remain same)
-
-const normalizeStripeSecret = (key) => {
-  if (!key) return '';
-  return String(key).trim().replace(/^['"]|['"]$/g, '');
-};
-
-const isStripeSecretKeyPlaceholderOrRedacted = (key) => {
-  if (!key) return true;
-  const v = normalizeStripeSecret(key);
-  if (!v) return true;
-  if (v.includes('your_key_here') || v.includes('your_stripe_secret_key')) return true;
-  if (v === 'sk_test_your_key_here' || v === 'sk_live_your_key_here') return true;
-  if (v.includes('*') || v.includes('…') || v.toLowerCase().includes('redacted')) return true;
-  return false;
-};
-
-const isValidStripeSecretKeyFormat = (key) => {
-  const v = normalizeStripeSecret(key);
-  return /^sk_(test|live)_[A-Za-z0-9]+$/.test(v);
-};
-
-const stripeSecretNormalized = normalizeStripeSecret(stripeSecret);
-
-if (
-  stripeSecretNormalized &&
-  !isStripeSecretKeyPlaceholderOrRedacted(stripeSecretNormalized) &&
-  isValidStripeSecretKeyFormat(stripeSecretNormalized)
-) {
-  stripe = new Stripe(stripeSecretNormalized, { apiVersion: '2024-06-20' });
-} else {
-  console.warn(
-    'Stripe is not configured (missing/placeholder/invalid STRIPE_SECRET_KEY). Checkout will be disabled.'
-  );
-}
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+const PAYSTACK_WEBHOOK_SECRET = process.env.PAYSTACK_WEBHOOK_SECRET || process.env.PAYSTACK_SECRET_KEY;
 
 // POST /api/checkout/create-session
 router.post('/create-session', async (req, res) => {
-  const { items, currency = 'kes', customerEmail, orderData } = req.body;
+  const { items, currency = 'KES', customerEmail, orderData } = req.body;
 
-  if (!stripe) {
-    return res.status(503).json({ message: 'Checkout is not configured on the server.' });
+  if (!PAYSTACK_SECRET_KEY || PAYSTACK_SECRET_KEY === 'your_paystack_secret_key_here') {
+    return res.status(503).json({ message: 'Payment gateway is not configured on the server.' });
   }
 
   if (!Array.isArray(items) || !items.length) {
+
     return res.status(400).json({ message: 'No items to checkout' });
   }
 
   try {
     // 1. Create a pending order in our database first
-    // This ensures we have a record even before they pay.
     let orderId = null;
     if (orderData) {
       try {
@@ -68,73 +32,80 @@ router.post('/create-session', async (req, res) => {
         });
       } catch (dbErr) {
         console.error('Failed to pre-create order:', dbErr);
-        // We continue anyway, the webhook might still work with metadata
       }
     }
 
-    const lineItems = items.map((item) => ({
-      price_data: {
-        currency,
-        product_data: {
-          name: item.name,
-        },
-        unit_amount: Math.round(item.price * 100),
-      },
-      quantity: item.quantity || 1,
-    }));
+    // Paystack takes amount in subunits (e.g., KES cents equivalent)
+    // For KES, it's usually 1:100 (cents), but double check Paystack KES docs. 
+    // Most Paystack currencies use subunits.
+    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      line_items: lineItems,
-      success_url: `${process.env.CLIENT_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/checkout`,
-      customer_email: customerEmail || undefined,
+    const paystackData = {
+      email: customerEmail,
+      amount: Math.round(totalAmount * 100), // Amount in cents/shilling subunits
+      currency: currency.toUpperCase(),
+      callback_url: `${process.env.CLIENT_URL}/checkout/success`,
       metadata: {
         order_id: orderId ? String(orderId) : '',
-        customer_email: customerEmail || ''
-      },
-      billing_address_collection: 'required',
-      phone_number_collection: { enabled: true },
-      shipping_address_collection: {
-        allowed_countries: ['KE', 'US', 'GB', 'CA'], // Adjust as needed
-      },
-    });
+        customer_email: customerEmail || '',
+        custom_fields: items.map(item => ({
+          display_name: item.name,
+          variable_name: item.name.toLowerCase().replace(/ /g, '_'),
+          value: item.quantity
+        }))
+      }
+    };
 
-    res.json({ url: session.url, id: session.id });
+    const response = await axios.post(
+      'https://api.paystack.co/transaction/initialize',
+      paystackData,
+      {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data.status) {
+      // Paystack returns { status: true, data: { authorization_url, access_code, reference } }
+      res.json({
+        url: response.data.data.authorization_url,
+        id: response.data.data.reference
+      });
+    } else {
+      throw new Error(response.data.message || 'Paystack initialization failed');
+    }
+
   } catch (err) {
-    console.error('Error creating checkout session', err);
+    console.error('Error creating Paystack session', err.response?.data || err.message);
     res.status(500).json({ message: 'Failed to start checkout' });
   }
 });
 
 // POST /api/checkout/webhook
-// This is called by Stripe when the payment is successful
 router.post('/webhook', async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
+  // If we are using express.raw, req.body is a Buffer
+  const body = Buffer.isBuffer(req.body) ? req.body.toString() : JSON.stringify(req.body);
 
-  if (!webhookSecret) {
-    console.error('Webhook secret is not configured.');
-    return res.status(400).send('Webhook Error: Secret missing');
+  const hash = crypto.createHmac('sha512', PAYSTACK_WEBHOOK_SECRET).update(body).digest('hex');
+
+  if (hash !== req.headers['x-paystack-signature']) {
+    console.error('Paystack webhook signature mismatch');
+    return res.status(401).send('Invalid signature');
   }
 
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
+  const event = JSON.parse(body);
 
-  // Handle the event
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const orderId = session.metadata.order_id;
+  // Handle the charge.success event
+  if (event.event === 'charge.success') {
+    const data = event.data;
+    const orderId = data.metadata.order_id;
 
-    console.log(`Payment confirmed for session ${session.id}, order ${orderId}`);
+    console.log(`Payment confirmed for reference ${data.reference}, order ${orderId}`);
 
     if (orderId) {
       try {
-        // Update order status in database
         await pool.query(
           'UPDATE orders SET payment_status = "paid" WHERE id = ?',
           [orderId]
@@ -146,28 +117,41 @@ router.post('/webhook', async (req, res) => {
     }
   }
 
-  res.json({ received: true });
+  res.status(200).send('Webhook Received');
 });
 
-// GET /api/checkout/session/:id (retrieve status after redirect)
+// GET /api/checkout/session/:id (Verify transaction status)
 router.get('/session/:id', async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params; // This will be the Paystack reference
 
-  if (!stripe) return res.status(503).json({ message: 'Checkout is not configured.' });
+  if (!PAYSTACK_SECRET_KEY) return res.status(503).json({ message: 'Payment gateway not configured.' });
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(id);
-    res.json({
-      id: session.id,
-      status: session.status,
-      paymentStatus: session.payment_status,
-      amountTotal: session.amount_total,
-      customerEmail: session.customer_details?.email || session.metadata.customer_email || null,
-    });
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`
+        }
+      }
+    );
+
+    if (response.data.status) {
+      const data = response.data.data;
+      res.json({
+        id: data.reference,
+        status: data.status, // 'success', 'failed', etc.
+        paymentStatus: data.status === 'success' ? 'paid' : 'unpaid',
+        amountTotal: data.amount / 100,
+        customerEmail: data.customer.email,
+      });
+    } else {
+      res.status(404).json({ message: 'Transaction not found' });
+    }
   } catch (err) {
+    console.error('Error verifying Paystack transaction', err.response?.data || err.message);
     res.status(500).json({ message: 'Failed to retrieve checkout session' });
   }
 });
 
 module.exports = router;
-

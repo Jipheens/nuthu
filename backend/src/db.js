@@ -50,11 +50,12 @@ const ensureSchema = async () => {
           email_verified TINYINT(1) NOT NULL DEFAULT 0,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
+        )
       `);
-      return;
     }
 
     const [columns] = await conn.query(
+
       `SELECT 1 as ok
        FROM information_schema.columns
        WHERE table_schema = DATABASE() AND table_name = 'users' AND column_name = 'email_verified'
@@ -67,10 +68,48 @@ const ensureSchema = async () => {
          ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 1`
       );
     }
+    // 2. Ensure orders table and customer_email column
+    const [orderTables] = await conn.query(
+      `SELECT 1 as ok FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'orders' LIMIT 1`
+    );
+
+    if (orderTables.length === 0) {
+      await conn.query(`
+        CREATE TABLE IF NOT EXISTS orders (
+          id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+          total_amount DECIMAL(10,2) NOT NULL,
+          currency VARCHAR(10) NOT NULL DEFAULT 'KES',
+          customer_email VARCHAR(255),
+          payment_status VARCHAR(50) NOT NULL DEFAULT 'pending',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+    } else {
+      const [orderColumns] = await conn.query(
+        `SELECT 1 as ok FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'orders' AND column_name = 'customer_email' LIMIT 1`
+      );
+      if (orderColumns.length === 0) {
+        await conn.query(`ALTER TABLE orders ADD COLUMN customer_email VARCHAR(255) AFTER currency`);
+      }
+    }
+
+    // 3. Ensure order_items table
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS order_items (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        order_id INT UNSIGNED NOT NULL,
+        product_id INT UNSIGNED NOT NULL,
+        quantity INT UNSIGNED NOT NULL,
+        price_at_purchase DECIMAL(10,2) NOT NULL,
+        FOREIGN KEY (order_id) REFERENCES orders(id),
+        FOREIGN KEY (product_id) REFERENCES products(id)
+      )
+    `);
   } finally {
     conn.release();
   }
 };
+
 
 module.exports = { pool, ensureSchema };
 

@@ -17,19 +17,17 @@ export const truncateString = (str: string, maxLength: number): string => {
 export const getImageUrl = (imageUrl: string | null | undefined): string => {
     if (!imageUrl) return '/placeholder.jpg';
     
-    // Get API origin from environment or default to local dev backend
-    const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:4000';
-    
-    // If URL contains localhost, replace it with production server
-    if (imageUrl.includes('localhost')) {
-        return imageUrl.replace(/http:\/\/localhost:\d+/, API_BASE);
+    // Normalize image URLs - extract just the /uploads/ path
+    if (imageUrl.includes('/uploads/')) {
+        // Get everything from /uploads/ onwards - use relative path
+        return imageUrl.substring(imageUrl.indexOf('/uploads/'));
     }
     
-    // If URL is relative (starts with /), prepend API base
+    // If URL is relative (starts with /), return as-is
     if (imageUrl.startsWith('/')) {
-        return `${API_BASE}${imageUrl}`;
+        return imageUrl;
     }
     
-    // Return as-is if it's already a full URL
+    // Return as-is if it's already a full URL without /uploads/
     return imageUrl;
 };

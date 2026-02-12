@@ -19,7 +19,8 @@ const CheckoutSuccessPage: React.FC = () => {
 
       try {
         const params = new URLSearchParams(window.location.search);
-        const sessionId = params.get('session_id');
+        const sessionId = params.get('session_id') || params.get('reference');
+
 
         const snapshot = JSON.parse(raw) as {
           totalAmount: number;
@@ -85,11 +86,11 @@ const CheckoutSuccessPage: React.FC = () => {
                   ? `Your order has been recorded. We’ll contact you at ${customerEmail} to arrange payment.`
                   : `Thank you for your purchase. A confirmation will be sent to ${customerEmail}.`
                 : paymentStatus === 'pending'
-                ? 'Your order has been recorded. We’ll contact you to arrange payment.'
-                : 'Thank you for your purchase. Your order has been recorded.'
+                  ? 'Your order has been recorded. We’ll contact you to arrange payment.'
+                  : 'Thank you for your purchase. Your order has been recorded.'
               : paymentStatus === 'pending'
-              ? 'Your order has been recorded. We’ll contact you to arrange payment.'
-              : 'Thank you for your purchase. A confirmation will be sent to your email.'}
+                ? 'Your order has been recorded. We’ll contact you to arrange payment.'
+                : 'Thank you for your purchase. A confirmation will be sent to your email.'}
           </p>
           <Link to="/shop" className="add-to-cart-button" style={{ display: 'inline-block', padding: '0.875rem 2rem' }}>
             Continue shopping
