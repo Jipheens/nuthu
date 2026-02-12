@@ -34,7 +34,7 @@ const CartPage: React.FC = () => {
                                 <Link to={`/product/${product.id}`} key={product.id} className="featured-item">
                                     <img src={getImageUrl(product.imageUrl)} alt={product.name} />
                                     <h3>{product.name}</h3>
-                                    <p className="featured-price"><PriceDisplay priceInKES={product.price} /></p>
+                                    <p className="featured-price"><PriceDisplay price={product.price} /></p>
                                 </Link>
                             ))}
                         </div>
@@ -67,7 +67,7 @@ const CartPage: React.FC = () => {
                                 <img src={item.imageUrl} alt={item.name} />
                                 <div className="cart-item-details">
                                     <h3>{item.name}</h3>
-                                    <p className="cart-item-price"><PriceDisplay priceInKES={item.price} /></p>
+                                    <p className="cart-item-price"><PriceDisplay price={item.price} /></p>
                                 </div>
                             </div>
 
@@ -104,7 +104,7 @@ const CartPage: React.FC = () => {
                             </div>
 
                             <div className="cart-item-total">
-                                <PriceDisplay priceInKES={item.price * item.quantity} />
+                                <PriceDisplay price={item.price * item.quantity} />
                             </div>
                         </div>
                     ))}
@@ -112,7 +112,7 @@ const CartPage: React.FC = () => {
 
                 <div className="cart-summary">
                     <h2>Estimated total</h2>
-                    <p className="cart-summary-total"><PriceDisplay priceInKES={totalAmount} /></p>
+                    <p className="cart-summary-total"><PriceDisplay price={totalAmount} /></p>
                     <p className="cart-summary-note">
                         Taxes, discounts and shipping calculated at checkout
                     </p>
@@ -134,7 +134,7 @@ const CartPage: React.FC = () => {
                             <Link to={`/product/${product.id}`} key={product.id} className="featured-item">
                                 <img src={getImageUrl(product.imageUrl)} alt={product.name} />
                                 <h3>{product.name}</h3>
-                                <p className="featured-price"><PriceDisplay priceInKES={product.price} /></p>
+                                <p className="featured-price"><PriceDisplay price={product.price} /></p>
                             </Link>
                         ))}
                     </div>

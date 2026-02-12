@@ -30,7 +30,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                     <Link to={`/product/${product.id}`}>{product.name}</Link>
                 </h3>
                 <div className="product-bottom-row">
-                    <span className="product-price">Regular price <PriceDisplay priceInKES={product.price} /></span>
+                    <span className="product-price">Regular price <PriceDisplay price={product.price} /></span>
                 </div>
             </div>
         </div>

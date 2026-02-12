@@ -2,11 +2,13 @@ import React from 'react';
 import { useCurrency } from '../../context/CurrencyContext';
 
 interface PriceDisplayProps {
-    priceInKES: number;
+    price: number;
+    originalCurrency?: 'KES' | 'USD';
+    disableSmartCheck?: boolean;
     className?: string;
 }
 
-export const PriceDisplay: React.FC<PriceDisplayProps> = ({ priceInKES, className }) => {
+export const PriceDisplay: React.FC<PriceDisplayProps> = ({ price, originalCurrency = 'USD', disableSmartCheck = false, className }) => {
     const { formatPrice } = useCurrency();
-    return <span className={className}>{formatPrice(priceInKES)}</span>;
+    return <span className={className}>{formatPrice(price, originalCurrency, disableSmartCheck)}</span>;
 };

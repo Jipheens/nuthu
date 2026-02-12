@@ -44,7 +44,7 @@ const ProductDetailPage: React.FC = () => {
                 </div>
                 <div className="product-detail-info">
                     <h1 className="product-detail-title">{product.name}</h1>
-                    <p className="product-detail-price"><PriceDisplay priceInKES={product.price} /></p>
+                    <p className="product-detail-price"><PriceDisplay price={product.price} /></p>
                     <p className="product-detail-description">{product.description}</p>
                     <div style={{ margin: '0.75rem 0' }}>
                         <label className="form-label" style={{ maxWidth: '140px' }}>
@@ -79,7 +79,7 @@ const ProductDetailPage: React.FC = () => {
                     </div>
                 </div>
             </section>
-    </main>
+        </main>
     );
 };
 

@@ -3,12 +3,12 @@ const { sendOrderConfirmation } = require('./emailService');
 
 /**
  * Creates an order and its items in a single transaction.
- * @param {Object} orderData - { totalAmount, currency, email, items, paymentStatus, shipping_address, shipping_city, shipping_state, shipping_zip, shipping_country, phone_number }
+ * @param {Object} orderData - { totalAmount, currency, email, items, paymentStatus, shipping_address, shipping_city, shipping_state, shipping_zip, shipping_country, phone_number, shipping_fee }
  * @returns {Promise<number>} - The created order ID
  */
 async function createOrderInDB({
   totalAmount,
-  currency,
+  currency = 'USD',
   email,
   items,
   paymentStatus,
@@ -17,7 +17,8 @@ async function createOrderInDB({
   shipping_state,
   shipping_zip,
   shipping_country,
-  phone_number
+  phone_number,
+  shipping_fee = 0
 }) {
   if (!Array.isArray(items) || !items.length || totalAmount == null) {
     throw new Error('Invalid order payload');
@@ -43,8 +44,9 @@ async function createOrderInDB({
         shipping_state,
         shipping_zip,
         shipping_country,
-        phone_number
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        phone_number,
+        shipping_fee
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         totalAmount,
         currency,
@@ -55,7 +57,8 @@ async function createOrderInDB({
         shipping_state || null,
         shipping_zip || null,
         shipping_country || null,
-        phone_number || null
+        phone_number || null,
+        shipping_fee
       ]
     );
 
@@ -89,6 +92,7 @@ async function createOrderInDB({
           shipping_zip,
           shipping_country,
           phone_number,
+          shipping_fee,
           items: items.map(item => ({
             productName: item.productName || item.name || 'Product',
             quantity: item.quantity,

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { createCheckoutSession } from '../services/api';
 import { formatCurrency, getImageUrl } from '../utils/formatters';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
+import { PriceDisplay } from '../components/common/PriceDisplay';
 import './CheckoutPage.css';
 
 const VERIFIED_EMAILS_KEY = 'verified_emails';
@@ -26,8 +28,33 @@ const isEmailVerified = (value: string): boolean => {
 };
 
 const CheckoutPage: React.FC = () => {
-    const { cartItems, totalAmount, clearCart } = useCart();
+    const { cartItems, clearCart } = useCart();
+    const { convertPrice } = useCurrency();
+
+    // Recalculate totals locally to handle mixed currency (legacy KES vs new USD)
+    const subtotalUSD = cartItems.reduce((sum, item) => {
+        let price = item.price;
+        // Smart check: If price > 2000, assumes it's legacy KES and converts to USD
+        if (price > 2000) {
+            price = convertPrice(price, 'KES');
+        }
+        return sum + (price * item.quantity);
+    }, 0);
+
+    const shippingUSD = 45;
+    const totalUSD = subtotalUSD + shippingUSD;
+
     const navigate = useNavigate();
+
+    // Create normalized cart items for API calls (converting legacy KES prices to USD)
+    const normalizedCartItems = cartItems.map(item => {
+        let price = item.price;
+        if (price > 2000) {
+            price = convertPrice(price, 'KES');
+        }
+        return { ...item, price };
+    });
+
     const { user } = useAuth();
     const [isProcessing, setIsProcessing] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -86,9 +113,10 @@ const CheckoutPage: React.FC = () => {
         }
 
         const orderSnapshot = {
-            totalAmount,
-            currency: 'kes',
-            items: cartItems.map((item) => ({
+            totalAmount: totalUSD,
+            currency: 'USD',
+            shipping_fee: shippingUSD,
+            items: normalizedCartItems.map((item) => ({
                 productId: item.id,
                 quantity: item.quantity,
                 price: item.price,
@@ -131,10 +159,11 @@ const CheckoutPage: React.FC = () => {
             const customerEmail = (user?.email ?? email).trim();
 
             const orderSnapshot = {
-                totalAmount,
-                currency: 'KES',
+                totalAmount: totalUSD,
+                currency: 'USD',
+                shipping_fee: shippingUSD,
 
-                items: cartItems.map((item) => ({
+                items: normalizedCartItems.map((item) => ({
                     productId: item.id,
                     quantity: item.quantity,
                     price: item.price,
@@ -151,7 +180,7 @@ const CheckoutPage: React.FC = () => {
             window.localStorage.setItem('lastOrderSnapshot', JSON.stringify(orderSnapshot));
 
             const { url } = await createCheckoutSession(
-                cartItems.map((item) => ({
+                normalizedCartItems.map((item) => ({
                     name: item.name,
                     price: item.price,
                     quantity: item.quantity,
@@ -200,13 +229,21 @@ const CheckoutPage: React.FC = () => {
                                     <p className="checkout-item-qty">Qty: {item.quantity}</p>
                                 </div>
                                 <p className="checkout-item-price">
-                                    {formatCurrency(item.price * item.quantity, 'KES')}
+                                    <PriceDisplay price={item.price * item.quantity} />
                                 </p>
                             </div>
                         ))}
                         <div className="checkout-total-row">
+                            <span>Subtotal:</span>
+                            <span><PriceDisplay price={subtotalUSD} disableSmartCheck /></span>
+                        </div>
+                        <div className="checkout-total-row">
+                            <span>Shipping:</span>
+                            <span><PriceDisplay price={shippingUSD} disableSmartCheck /></span>
+                        </div>
+                        <div className="checkout-total-row">
                             <strong>Total:</strong>
-                            <strong>{formatCurrency(totalAmount, 'KES')}</strong>
+                            <strong><PriceDisplay price={totalUSD} disableSmartCheck /></strong>
                         </div>
                     </div>
                 </div>

@@ -21,10 +21,10 @@ const CheckoutSuccessPage: React.FC = () => {
         const params = new URLSearchParams(window.location.search);
         const sessionId = params.get('session_id') || params.get('reference');
 
-
         const snapshot = JSON.parse(raw) as {
           totalAmount: number;
           currency: string;
+          shipping_fee?: number;
           items: { productId: string; quantity: number; price: number }[];
           email?: string;
           paymentStatus?: 'paid' | 'pending';
@@ -61,6 +61,7 @@ const CheckoutSuccessPage: React.FC = () => {
         await createOrder({
           totalAmount: snapshot.totalAmount,
           currency: snapshot.currency,
+          shipping_fee: snapshot.shipping_fee,
           items: snapshot.items,
           email: resolvedEmail,
           paymentStatus: resolvedPaymentStatus,

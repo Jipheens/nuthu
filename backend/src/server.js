@@ -27,6 +27,7 @@ const uploadRoutes = require('./uploadRoutes');
 const emailRoutes = require('./emailRoutes');
 const authRoutes = require('./authRoutes');
 const cartRoutes = require('./cartRoutes');
+const debugRoutes = require('./debugRoutes');
 
 const app = express();
 
@@ -75,6 +76,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/debug', debugRoutes);
 
 const port = process.env.PORT || 4000;
 

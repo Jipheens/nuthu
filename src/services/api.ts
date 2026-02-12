@@ -111,6 +111,7 @@ export const createCheckoutSession = async (
     orderData?: {
         totalAmount: number;
         currency: string;
+        shipping_fee?: number;
         items: { productId: string; quantity: number; price: number }[];
         email?: string;
         shipping_address?: string;
@@ -125,9 +126,10 @@ export const createCheckoutSession = async (
         `${API_BASE_URL}/checkout/create-session`,
         {
             items,
-            currency: 'kes',
+            currency: 'USD',
             customerEmail,
             orderData,
+            shipping_fee: orderData?.shipping_fee || 0,
         }
     );
 
@@ -154,7 +156,7 @@ export const getCheckoutSession = async (
 // Stripe Elements: create a PaymentIntent for on-site card payments
 export const createPaymentIntent = async (
     amount: number,
-    currency: string = 'kes'
+    currency: string = 'USD'
 ): Promise<string> => {
     const response = await axios.post<{ clientSecret: string }>(
         `${API_BASE_URL}/checkout/create-payment-intent`,
@@ -173,6 +175,7 @@ export const createOrder = async (
     payload: {
         totalAmount: number;
         currency: string;
+        shipping_fee?: number;
         items: { productId: string; quantity: number; price: number }[];
         email?: string;
         paymentStatus?: 'paid' | 'pending';

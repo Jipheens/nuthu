@@ -3,6 +3,7 @@ import { useProductsContext } from '../context/ProductsContext';
 import { formatCurrency, getImageUrl } from '../utils/formatters';
 import { uploadProductImage } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { PriceDisplay } from '../components/common/PriceDisplay';
 
 const ManageProductsPage: React.FC = () => {
   const { products, addProduct, deleteProduct } = useProductsContext();
@@ -100,9 +101,9 @@ const ManageProductsPage: React.FC = () => {
                 />
               </div>
               <div className="manage-form-field">
-                <label>Price (KES)</label>
+                <label>Price (USD)</label>
                 <input
-                  placeholder="e.g. 3500"
+                  placeholder="e.g. 50.00"
                   type="number"
                   min="0"
                   step="0.01"
@@ -150,7 +151,7 @@ const ManageProductsPage: React.FC = () => {
                   <img src={getImageUrl(p.imageUrl)} alt={p.name} className="product-image" />
                   <div className="product-meta">
                     <span className="pill-badge">{p.category}</span>
-                    <span>{formatCurrency(p.price, 'KES')}</span>
+                    <PriceDisplay price={p.price} />
                   </div>
                   <h3 className="product-title">{p.name}</h3>
                   <button

@@ -48,7 +48,8 @@ const sendOrderConfirmation = async (orderDetails) => {
     shipping_state,
     shipping_zip,
     shipping_country,
-    phone_number
+    phone_number,
+    shipping_fee
   } = orderDetails;
 
   const { transporter, mode } = await createTransporter();
@@ -124,9 +125,15 @@ const sendOrderConfirmation = async (orderDetails) => {
               <tbody>
                 ${itemsHTML}
                 <tr class="total-row">
+                  <td colspan="2" style="padding: 15px 10px; text-align: right;">Shipping:</td>
+                  <td style="padding: 15px 10px; text-align: right;">
+                    ${currency === 'kes' ? 'KES' : currency.toUpperCase()} ${(shipping_fee || 0).toFixed(2)}
+                  </td>
+                </tr>
+                <tr class="total-row">
                   <td colspan="2" style="padding: 15px 10px; text-align: right;">Total:</td>
                   <td style="padding: 15px 10px; text-align: right;">
-                    ${currency === 'kes' ? 'KES' : currency.toUpperCase()} ${totalAmount.toFixed(2)}
+                    ${currency === 'kes' ? 'KES' : currency.toUpperCase()} ${(totalAmount + (shipping_fee || 0)).toFixed(2)}
                   </td>
                 </tr>
               </tbody>

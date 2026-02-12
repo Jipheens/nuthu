@@ -10,7 +10,7 @@ const PAYSTACK_WEBHOOK_SECRET = process.env.PAYSTACK_WEBHOOK_SECRET || process.e
 
 // POST /api/checkout/create-session
 router.post('/create-session', async (req, res) => {
-  const { items, currency = 'KES', customerEmail, orderData } = req.body;
+  const { items, currency = 'USD', customerEmail, orderData, shipping_fee = 0 } = req.body;
 
   if (!PAYSTACK_SECRET_KEY || PAYSTACK_SECRET_KEY === 'your_paystack_secret_key_here') {
     return res.status(503).json({ message: 'Payment gateway is not configured on the server.' });
@@ -28,6 +28,7 @@ router.post('/create-session', async (req, res) => {
       try {
         orderId = await createOrderInDB({
           ...orderData,
+          shipping_fee,
           paymentStatus: 'pending'
         });
       } catch (dbErr) {
@@ -38,11 +39,13 @@ router.post('/create-session', async (req, res) => {
     // Paystack takes amount in subunits (e.g., KES cents equivalent)
     // For KES, it's usually 1:100 (cents), but double check Paystack KES docs. 
     // Most Paystack currencies use subunits.
-    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    // For USD, it's 1:100 (cents).
+    const itemsTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalWithShipping = itemsTotal + (Number(shipping_fee) || 0);
 
     const paystackData = {
       email: customerEmail,
-      amount: Math.round(totalAmount * 100), // Amount in cents/shilling subunits
+      amount: Math.round(totalWithShipping * 100), // Amount in cents/shilling subunits
       currency: currency.toUpperCase(),
       callback_url: `${process.env.CLIENT_URL}/checkout/success`,
       metadata: {
@@ -51,6 +54,7 @@ router.post('/create-session', async (req, res) => {
         shipping_address: orderData?.shipping_address || '',
         shipping_city: orderData?.shipping_city || '',
         phone_number: orderData?.phone_number || '',
+        shipping_fee: shipping_fee,
         custom_fields: items.map(item => ({
           display_name: item.name,
           variable_name: item.name.toLowerCase().replace(/ /g, '_'),
