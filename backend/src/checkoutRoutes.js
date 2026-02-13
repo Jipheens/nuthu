@@ -36,17 +36,20 @@ router.post('/create-session', async (req, res) => {
       }
     }
 
-    // Paystack takes amount in subunits (e.g., KES cents equivalent)
-    // For KES, it's usually 1:100 (cents), but double check Paystack KES docs. 
-    // Most Paystack currencies use subunits.
-    // For USD, it's 1:100 (cents).
+    // STRATEGY: Use KES for Paystack (to avoid USD unsupported error)
+    // But keep display in USD on frontend
+    // Exchange rate: 1 USD = 129 KES
+    const KES_RATE = 129;
+
     const itemsTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const totalWithShipping = itemsTotal + (Number(shipping_fee) || 0);
+    const totalUSD = itemsTotal + (Number(shipping_fee) || 0);
+    const totalKES = totalUSD * KES_RATE;
 
     const paystackData = {
       email: customerEmail,
-      amount: Math.round(totalWithShipping * 100), // Amount in cents/shilling subunits
-      currency: currency.toUpperCase(),
+      amount: Math.round(totalKES * 100), // Amount in KES cents
+      currency: 'KES',
+      channels: ['card'], // Force card payment only (no M-PESA/mobile money)
       callback_url: `${process.env.CLIENT_URL}/checkout/success`,
       metadata: {
         order_id: orderId ? String(orderId) : '',
@@ -55,9 +58,11 @@ router.post('/create-session', async (req, res) => {
         shipping_city: orderData?.shipping_city || '',
         phone_number: orderData?.phone_number || '',
         shipping_fee: shipping_fee,
+        original_currency: 'USD',
+        original_amount: totalUSD,
         custom_fields: items.map(item => ({
           display_name: item.name,
-          variable_name: item.name.toLowerCase().replace(/ /g, '_'),
+          variable_name: item.name.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 30),
           value: item.quantity
         }))
       }
@@ -85,8 +90,18 @@ router.post('/create-session', async (req, res) => {
     }
 
   } catch (err) {
-    console.error('Error creating Paystack session', err.response?.data || err.message);
-    res.status(500).json({ message: 'Failed to start checkout' });
+    console.error('Error creating Paystack session:', err.response?.data || err.message);
+
+    // Return detailed error message to help diagnose the issue
+    const errorMessage = err.response?.data?.message || err.message || 'Failed to start checkout';
+    const errorDetails = err.response?.data || {};
+
+    console.error('Full Paystack error:', JSON.stringify(errorDetails, null, 2));
+
+    res.status(500).json({
+      message: errorMessage,
+      details: errorDetails
+    });
   }
 });
 
